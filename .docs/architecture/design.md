@@ -243,7 +243,7 @@ Storage: `this.loadData()` / `this.saveData()` with optional cap on retained ses
 
 | Setting | Type | Default |
 |---------|------|---------|
-| `backend` | `openai-compatible` \| `cursor-rest` \| `cursor-sdk-local` | `openai-compatible` |
+| `backend` | `cursor-rest` \| `openai-compatible` \| `cursor-sdk-local` | `cursor-rest` |
 | `includeActiveNote` | boolean | `true` |
 | `maxContextChars` | number | `32000` |
 | `showThinking` | boolean | `false` |

@@ -2,6 +2,7 @@ import { ItemView, MarkdownRenderer, WorkspaceLeaf } from "obsidian";
 import type CursorChatPlugin from "../main";
 import { VIEW_TYPE } from "../constants";
 import type { StoredMessage } from "../types/chat";
+import { BYOK_PROVIDER_PRESETS } from "../settings/byokProviders";
 import { VaultFileSuggestModal } from "./VaultFileSuggestModal";
 import { PrivacyNoticeModal } from "./PrivacyNoticeModal";
 
@@ -215,10 +216,11 @@ export class CursorChatView extends ItemView {
     }
 
     if (!byok.baseUrl || !byok.model) {
-      this.statusEl.setText("Configure provider in settings.");
+      this.statusEl.setText("Configure LLM provider in settings.");
       return;
     }
-    this.statusEl.setText(`BYOK · ${byok.model}`);
+    const label = BYOK_PROVIDER_PRESETS[byok.provider]?.label ?? "BYOK";
+    this.statusEl.setText(`${label} · ${byok.model}`);
   }
 
   private renderMessages(): void {

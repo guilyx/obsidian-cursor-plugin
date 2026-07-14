@@ -3,7 +3,7 @@
   "name": "Cursor Chat",
   "version": "0.4.0",
   "minAppVersion": "1.5.0",
-  "description": "AI chat sidebar with BYOK (OpenAI-compatible) and optional Cursor API backends.",
+  "description": "AI chat sidebar — Cursor-native by default, with BYOK via OpenRouter/LiteLLM.",
   "author": "Erwin Lejeune",
   "isDesktopOnly": true
 }

@@ -2,9 +2,9 @@
 
 [← Documentation index](../index.md) · [Backend selection](../architecture/backend-selection.md)
 
-Default path for users who want **simple AI chat** in Obsidian without a Cursor API key or agent infrastructure.
+Default path for users who want **simple AI chat** in Obsidian without a Cursor API key — typically via **OpenRouter** or a local **LiteLLM** proxy (both OpenAI-compatible).
 
-> Chosen via [Backend selection](../architecture/backend-selection.md). Contrasts with [Cursor REST](../backends/cursor-rest.md) and [SDK bridge](../backends/sdk-bridge.md).
+> **Cursor is the plugin default.** BYOK is for users who prefer their own LLM gateway. See [Backend selection](../architecture/backend-selection.md).
 
 ## Overview
 
@@ -21,20 +21,37 @@ flowchart LR
 
 | Provider | API style | Streaming | Notes |
 |----------|-----------|-----------|-------|
-| OpenAI | `/v1/chat/completions` | SSE `data: …` | Reference implementation |
-| Anthropic | Messages API | SSE | Separate client, not OpenAI-shaped |
-| OpenAI-compatible | Custom `baseUrl` | Usually SSE | Ollama, LM Studio, Scaleway, Groq, etc. |
+| **OpenRouter** | `/v1/chat/completions` | SSE | Recommended BYOK gateway — one key, many models |
+| **LiteLLM** | `/v1/chat/completions` | SSE | Self-hosted proxy; default `http://127.0.0.1:4000/v1` |
+| OpenAI | `/v1/chat/completions` | SSE | Direct provider |
+| OpenAI-compatible | Custom `baseUrl` | Usually SSE | Ollama, LM Studio, Groq, etc. |
+| Anthropic | Messages API | SSE | Separate client, not OpenAI-shaped (future) |
 | Azure OpenAI | OpenAI + deployment path | SSE | `baseUrl` + deployment name |
 
-Start with **OpenAI-compatible** only; add Anthropic as a second adapter when needed (ponytail: one interface, two implementations max in v1).
+Start with **OpenRouter** or **LiteLLM** presets in settings; use **Custom** for anything else.
+
+### OpenRouter
+
+- Base URL: `https://openrouter.ai/api/v1`
+- Model ids: `anthropic/claude-sonnet-4`, `openai/gpt-4o`, etc.
+- Keys: [openrouter.ai/keys](https://openrouter.ai/keys)
+- Plugin sends optional `Referer` + `X-Title` headers (OpenRouter rankings)
+
+### LiteLLM proxy
+
+- Base URL: `http://127.0.0.1:4000/v1` (or your deployment)
+- Model: whatever you configured in `config.yaml`
+- Key: LiteLLM master key (or empty for local dev)
+- Docs: [LiteLLM proxy quick start](https://docs.litellm.ai/docs/proxy/quick_start)
 
 ## Settings
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `apiKey` | Yes (except local Ollama) | Provider secret |
-| `baseUrl` | For compatible providers | e.g. `https://api.openai.com/v1` |
-| `model` | Yes | `gpt-4o`, `qwen3.5-…`, etc. |
+| `provider` | Yes | `openrouter` \| `litellm` \| `openai` \| `custom` |
+| `apiKey` | Yes (except local LiteLLM/Ollama) | Provider secret |
+| `baseUrl` | For compatible providers | Preset per provider |
+| `model` | Yes | OpenRouter: `vendor/model`; LiteLLM: proxy model name |
 | `maxTokens` | No | Cap completion length |
 | `temperature` | No | Default 0.7 |
 

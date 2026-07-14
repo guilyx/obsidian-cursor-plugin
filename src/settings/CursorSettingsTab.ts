@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type CursorChatPlugin from "../main";
 import type { CursorChatSettings } from "./CursorSettings";
 import { CursorApiClient } from "../api/CursorApiClient";
+import { BYOK_PROVIDER_PRESETS, applyByokProviderPreset } from "./byokProviders";
 
 export class CursorSettingsTab extends PluginSettingTab {
   constructor(app: App, private readonly plugin: CursorChatPlugin) {
@@ -14,17 +15,17 @@ export class CursorSettingsTab extends PluginSettingTab {
     containerEl.createEl("h2", { text: "Cursor Chat" });
 
     containerEl.createEl("p", {
-      text: "Choose a backend. Keys are stored locally in plugin data.",
+      text: "Cursor is the default backend. Use BYOK for OpenRouter, LiteLLM, or other OpenAI-compatible providers.",
       cls: "setting-item-description",
     });
 
     new Setting(containerEl)
       .setName("Backend")
-      .setDesc("BYOK uses any OpenAI-compatible API. Cursor REST uses Cloud Agents API v1.")
+      .setDesc("Cursor REST uses Cloud Agents API v1. BYOK routes to your chosen LLM gateway.")
       .addDropdown((dropdown) =>
         dropdown
-          .addOption("openai-compatible", "BYOK (OpenAI-compatible)")
-          .addOption("cursor-rest", "Cursor REST (crsr_…)")
+          .addOption("cursor-rest", "Cursor (default)")
+          .addOption("openai-compatible", "BYOK — OpenRouter / LiteLLM / …")
           .addOption("cursor-sdk-local", "Cursor SDK bridge (local)")
           .setValue(this.plugin.settings.backend)
           .onChange(async (value) => {
@@ -48,13 +49,36 @@ export class CursorSettingsTab extends PluginSettingTab {
 
   private displayByokSettings(containerEl: HTMLElement): void {
     const byok = this.plugin.settings.byok;
+    const preset = BYOK_PROVIDER_PRESETS[byok.provider];
+
+    new Setting(containerEl)
+      .setName("LLM provider")
+      .setDesc("OpenRouter and LiteLLM both speak OpenAI-compatible APIs.")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("openrouter", "OpenRouter")
+          .addOption("litellm", "LiteLLM proxy")
+          .addOption("openai", "OpenAI")
+          .addOption("custom", "Custom base URL")
+          .setValue(byok.provider)
+          .onChange(async (value) => {
+            applyByokProviderPreset(this.plugin.settings.byok, value as CursorChatSettings["byok"]["provider"]);
+            await this.plugin.saveSettings();
+            this.display();
+          }),
+      );
+
+    containerEl.createEl("p", {
+      cls: "setting-item-description",
+      text: `Get a key: ${preset.helpUrl}`,
+    });
 
     new Setting(containerEl)
       .setName("API key")
-      .setDesc("Provider secret (leave empty for local Ollama without auth).")
+      .setDesc("Provider secret (leave empty for local LiteLLM/Ollama without auth).")
       .addText((text) =>
         text
-          .setPlaceholder("sk-…")
+          .setPlaceholder(preset.apiKeyPlaceholder)
           .setValue(byok.apiKey)
           .onChange(async (value) => {
             this.plugin.settings.byok.apiKey = value;
@@ -64,9 +88,10 @@ export class CursorSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Base URL")
-      .setDesc("OpenAI-compatible API root, e.g. https://api.openai.com/v1")
+      .setDesc("OpenAI-compatible API root.")
       .addText((text) =>
         text
+          .setPlaceholder(preset.baseUrl || "https://…/v1")
           .setValue(byok.baseUrl)
           .onChange(async (value) => {
             this.plugin.settings.byok.baseUrl = value;
@@ -76,8 +101,10 @@ export class CursorSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Model")
+      .setDesc(byok.provider === "openrouter" ? "OpenRouter model id, e.g. anthropic/claude-sonnet-4" : undefined)
       .addText((text) =>
         text
+          .setPlaceholder(preset.model || "model-id")
           .setValue(byok.model)
           .onChange(async (value) => {
             this.plugin.settings.byok.model = value;

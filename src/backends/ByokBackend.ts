@@ -1,11 +1,25 @@
 import type { ChatBackend } from "./ChatBackend";
 import type { SendMessageInput, StreamEvent } from "../types/chat";
 import type { CursorChatSettings } from "../settings/CursorSettings";
+import { BYOK_PROVIDER_PRESETS } from "../settings/byokProviders";
 import { SYSTEM_PROMPT } from "../constants";
 import { readOpenAiSseStream } from "../api/SseReader";
 
 export class ByokBackend implements ChatBackend {
   constructor(private readonly settings: CursorChatSettings) {}
+
+  private requestHeaders(): Record<string, string> {
+    const { byok } = this.settings;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (byok.apiKey) {
+      headers.Authorization = `Bearer ${byok.apiKey}`;
+    }
+    const extra = BYOK_PROVIDER_PRESETS[byok.provider]?.extraHeaders;
+    if (extra) {
+      Object.assign(headers, extra);
+    }
+    return headers;
+  }
 
   async validate(): Promise<void> {
     const { baseUrl, apiKey } = this.settings.byok;
@@ -13,10 +27,8 @@ export class ByokBackend implements ChatBackend {
       throw new Error("Base URL is required.");
     }
     const url = `${baseUrl.replace(/\/$/, "")}/models`;
-    const headers: Record<string, string> = {};
-    if (apiKey) {
-      headers.Authorization = `Bearer ${apiKey}`;
-    }
+    const headers = { ...this.requestHeaders() };
+    delete headers["Content-Type"];
     const res = await fetch(url, { headers });
     if (!res.ok) {
       const text = await res.text();
@@ -38,10 +50,7 @@ export class ByokBackend implements ChatBackend {
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(byok.apiKey ? { Authorization: `Bearer ${byok.apiKey}` } : {}),
-        },
+        headers: this.requestHeaders(),
         body: JSON.stringify({
           model: byok.model,
           messages,

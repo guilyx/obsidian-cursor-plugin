@@ -39,7 +39,7 @@ export class ChatSessionManager {
     }
   }
 
-  createSession(backend: ChatBackendId = "openai-compatible"): ChatSession {
+  createSession(backend: ChatBackendId = "cursor-rest"): ChatSession {
     const now = new Date().toISOString();
     const session: ChatSession = {
       id: crypto.randomUUID(),
@@ -54,7 +54,7 @@ export class ChatSessionManager {
     return session;
   }
 
-  ensureActive(backend: ChatBackendId = "openai-compatible"): ChatSession {
+  ensureActive(backend: ChatBackendId = "cursor-rest"): ChatSession {
     return this.getActive() ?? this.createSession(backend);
   }
 
