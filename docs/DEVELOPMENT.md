@@ -16,42 +16,55 @@ How to implement **obsidian-cursor-plugin** after the design docs.
 ```
 obsidian-cursor-plugin/
 ├── manifest.json
-├── versions.json
 ├── package.json
 ├── esbuild.config.mjs
-├── tsconfig.json
-├── CHANGELOG.md
-├── README.md
 ├── docs/
-│   ├── DESIGN.md
-│   ├── API-INTEGRATION.md
-│   ├── DEVELOPMENT.md
-│   └── UX.md
+│   ├── BACKEND-SELECTION.md    ← start here
+│   ├── BYOK.md
+│   ├── API-INTEGRATION.md      ← cursor-rest
+│   ├── SDK-BRIDGE.md           ← optional sidecar
+│   └── …
 ├── src/
-│   ├── main.ts                 # Plugin entry
-│   ├── constants.ts            # API_BASE, VIEW_TYPE
-│   ├── settings/
-│   │   ├── CursorSettings.ts
-│   │   └── CursorSettingsTab.ts
-│   ├── views/
-│   │   ├── CursorChatView.ts
-│   │   └── chat/
-│   │       ├── MessageList.ts
-│   │       ├── Composer.ts
-│   │       └── ToolCallCard.ts
+│   ├── main.ts
+│   ├── backends/
+│   │   ├── BackendRouter.ts
+│   │   ├── ByokBackend.ts          # Phase 1
+│   │   ├── CursorRestBackend.ts    # Phase 2
+│   │   └── CursorBridgeBackend.ts  # Phase 4
 │   ├── api/
 │   │   ├── CursorApiClient.ts
-│   │   ├── SseReader.ts
-│   │   └── errors.ts
-│   ├── context/
-│   │   └── VaultContextBuilder.ts
-│   ├── session/
-│   │   └── ChatSessionManager.ts
-│   └── types/
-│       ├── cursor-api.ts
-│       └── chat.ts
-└── styles.css
+│   │   └── CursorBridgeClient.ts
+│   └── …
+└── bridge/                     # optional separate package
+    ├── package.json            # @cursor/sdk
+    └── src/server.ts
 ```
+
+## Implementation checklist (revised)
+
+### Phase 1 — BYOK (default)
+
+- [ ] `BackendRouter` + `ByokBackend`
+- [ ] OpenAI-compatible streaming client
+- [ ] Settings: `apiKey`, `baseUrl`, `model`
+- [ ] See [BYOK.md](./BYOK.md)
+
+### Phase 2 — Cursor REST
+
+- [ ] `CursorRestBackend` wrapping `CursorApiClient`
+- [ ] `crsr_…` settings, `GET /v1/me`, SSE
+- [ ] See [API-INTEGRATION.md](./API-INTEGRATION.md)
+
+### Phase 3 — Shared UX
+
+- [ ] Backend picker in settings
+- [ ] Multi-session, vault context, `@mentions`
+
+### Phase 4 — SDK bridge (optional repo)
+
+- [ ] `bridge/` package (TS or Python)
+- [ ] `CursorBridgeBackend` → localhost API
+- [ ] See [SDK-BRIDGE.md](./SDK-BRIDGE.md)
 
 ## Toolchain
 

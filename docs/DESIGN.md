@@ -4,64 +4,76 @@
 
 Obsidian users want Cursor-grade AI assistance **inside their note-taking workflow** without leaving the vault. Cursor already exposes programmatic access through the **Cloud Agents API** and **TypeScript SDK**, but neither is an Obsidian plugin today.
 
-This plugin bridges that gap: a native Obsidian sidebar chat that talks to Cursor over HTTPS with an API key, streams replies in real time, and grounds answers in vault context.
+This plugin bridges that gap: a native Obsidian sidebar chat with **pluggable backends** — BYOK to any LLM provider, Cursor Cloud Agents over REST, or full local agents via an optional **SDK bridge** (TypeScript or Python).
+
+> **Start here:** [BACKEND-SELECTION.md](./BACKEND-SELECTION.md) — pick the right path for your needs.
 
 ## 2. Goals
 
 | Goal | Description |
 |------|-------------|
 | **In-vault chat** | Persistent sidebar `ItemView` with multi-turn conversations |
-| **Cursor-native models** | Use Cursor-hosted models via API (not BYOK OpenAI keys) |
-| **Streaming UX** | Token-by-token assistant output, tool-call visibility, cancel support |
-| **Vault awareness** | Active file, selection, `@note` mentions, optional folder scope |
-| **Secure credentials** | API key stored locally; never logged or synced by the plugin |
+| **BYOK first** | Provider-direct chat (OpenAI-compatible) without requiring Cursor |
+| **Cursor integration** | Optional `crsr_…` key → Cloud Agents API or SDK local bridge |
+| **Streaming UX** | Token-by-token output, tool-call visibility (Cursor backends), cancel |
+| **Vault awareness** | Active file, selection, `@note` mentions; or disk access via SDK bridge |
+| **Secure credentials** | Keys stored locally per backend; never logged or cross-sent |
 | **Resumable sessions** | Conversations survive Obsidian restarts |
 
 ## 3. Non-goals (v1)
 
 - Mirroring the full Cursor IDE UI (composer tabs, inline diffs, Tab completion)
-- Running `@cursor/sdk` **inside** the Obsidian renderer (Node 22 + native binaries; wrong runtime)
-- Direct filesystem access from Cursor into the Obsidian vault (no mount API)
-- Mobile-first parity (SSE streaming on mobile Obsidian is constrained; desktop first)
+- Bundling `@cursor/sdk` or `cursor-sdk` **inside** the Obsidian plugin bundle
+- Syncing Cursor IDE internal BYOK settings (no public API)
+- Mobile-first parity for SDK bridge or SSE (desktop first)
 - Replacing Obsidian Sync or git-based vault sync
 
 ## 4. Architectural overview
 
 ```mermaid
 flowchart TB
-  subgraph Obsidian["Obsidian (Electron)"]
+  subgraph Obsidian["Obsidian Plugin"]
     UI["Chat ItemView"]
     CTX["VaultContextBuilder"]
     SESS["SessionStore"]
-    API["CursorApiClient"]
+    ROUTER["BackendRouter"]
     UI --> CTX
     UI --> SESS
-    UI --> API
+    UI --> ROUTER
     CTX --> VaultAPI["app.vault / editor"]
     SESS --> DataJSON["plugin data.json"]
   end
 
-  subgraph Cursor["Cursor Cloud"]
-    Agents["POST /v1/agents"]
-    Runs["POST /v1/agents/:id/runs"]
-    Stream["GET …/runs/:runId/stream SSE"]
-    Models["GET /v1/models"]
-  end
+  ROUTER --> BYOK["openai-compatible\nProvider BYOK"]
+  ROUTER --> REST["cursor-rest\nCloud Agents API"]
+  ROUTER --> BRIDGE["cursor-sdk-local\nlocalhost bridge"]
 
-  API -->|"Bearer crsr_…"| Agents
-  API --> Runs
-  API --> Stream
-  API --> Models
+  BYOK -->|"sk-…"| PROVIDER["OpenAI / Anthropic / Ollama / …"]
+  REST -->|"crsr_…"| CURSOR["api.cursor.com"]
+  BRIDGE --> SDK["@cursor/sdk or cursor-sdk"]
+  SDK -->|"crsr_…"| CURSOR
+  SDK --> DISK["Vault on disk"]
 ```
 
-### 4.1 Runtime choice: REST API, not SDK
+### 4.1 Backend choice (summary)
 
-| Option | Verdict |
-|--------|---------|
-| `@cursor/sdk` in plugin | **Rejected** — requires Node ≥ 22, spawns local agent loop, ships platform binaries; Obsidian plugins run in the renderer sandbox |
-| Cloud Agents REST + SSE | **Selected** — `fetch` / `requestUrl` + `eventsource-parser`; works in Electron desktop |
+| Backend | Credential | See |
+|---------|------------|-----|
+| `openai-compatible` | Provider BYOK (`sk-…`) | [BYOK.md](./BYOK.md) |
+| `cursor-rest` | Cursor API key (`crsr_…`) | [API-INTEGRATION.md](./API-INTEGRATION.md) |
+| `cursor-sdk-local` | `crsr_…` on bridge host | [SDK-BRIDGE.md](./SDK-BRIDGE.md) |
 
-A future **optional local bridge** (small Node sidecar or Cursor CLI wrapper) could unlock repo-local agents; it is out of scope for v1. See [§ 10 Future extensions](#10-future-extensions).
+Full decision matrix: [BACKEND-SELECTION.md](./BACKEND-SELECTION.md).
+
+### 4.2 Runtime choice: three layers, not one
+
+| Layer | Runs where | Verdict |
+|-------|------------|---------|
+| BYOK provider client | Obsidian renderer | **Default MVP** — simple chat, true bring-your-own-key |
+| Cloud Agents REST + SSE | Obsidian renderer | **Cursor without sidecar** — agent features in cloud |
+| `@cursor/sdk` / `cursor-sdk` | Optional bridge process | **Local agent on vault disk** — Node ≥ 22 or Python ≥ 3.10 |
+
+SDK is **not rejected** — it runs in a **sidecar**, not inside `main.js`.
 
 ### 4.2 Agent model mapping
 
@@ -111,9 +123,35 @@ Sub-regions:
 | Composer | Textarea, send/stop, context chips |
 | StatusBar | Connection state, token usage, agent link |
 
-### 5.3 `CursorApiClient` (api/CursorApiClient.ts)
+### 5.3 `BackendRouter` (backends/BackendRouter.ts)
 
-Thin typed wrapper over Cloud Agents API:
+Selects implementation from `settings.backend`:
+
+```typescript
+interface ChatBackend {
+  send(session: ChatSession, message: string, context: VaultContext): AsyncGenerator<StreamEvent>;
+  validateSettings(): Promise<void>;
+  listModels?(): Promise<Model[]>;
+}
+
+class BackendRouter {
+  constructor(settings: PluginSettings) {
+    switch (settings.backend) {
+      case "openai-compatible": return new ByokBackend(settings.byok);
+      case "cursor-rest": return new CursorRestBackend(settings.cursor);
+      case "cursor-sdk-local": return new CursorBridgeBackend(settings.cursor);
+    }
+  }
+}
+```
+
+### 5.4 `ByokBackend` (backends/ByokBackend.ts)
+
+OpenAI-compatible chat completions. See [BYOK.md](./BYOK.md).
+
+### 5.5 `CursorApiClient` (api/CursorApiClient.ts)
+
+Thin typed wrapper over Cloud Agents API (`cursor-rest`):
 
 ```typescript
 interface CursorApiClient {
@@ -132,14 +170,18 @@ Base URL: `https://api.cursor.com` (configurable constant only if Cursor documen
 
 Auth header: `Authorization: Bearer ${apiKey}`.
 
-### 5.4 `SseReader` (api/SseReader.ts)
+### 5.6 `CursorBridgeClient` (api/CursorBridgeClient.ts)
+
+HTTP client for localhost SDK bridge. Proxies send/stream/cancel. See [SDK-BRIDGE.md](./SDK-BRIDGE.md).
+
+### 5.7 `SseReader` (api/SseReader.ts)
 
 - Parses `text/event-stream` with `eventsource-parser`
 - Supports `Last-Event-ID` resume per API spec
 - Maps simplified events (`assistant`, `thinking`, `tool_call`, `result`, `error`, `done`) to internal `StreamEvent` union
 - Desktop: prefer `fetch` + `ReadableStream` when CORS allows; fallback `requestUrl` for non-streaming poll via `GET /runs/:id`
 
-### 5.5 `VaultContextBuilder` (context/VaultContextBuilder.ts)
+### 5.8 `VaultContextBuilder` (context/VaultContextBuilder.ts)
 
 Builds the **system prefix** appended to each user message (or sent once as initial context):
 
@@ -164,7 +206,7 @@ Rules:
 
 Uses `app.workspace.getActiveViewOfType(MarkdownView)` and `editor.getSelection()` (source mode only for selection; preview mode shows a hint).
 
-### 5.6 `ChatSessionManager` (session/ChatSessionManager.ts)
+### 5.9 `ChatSessionManager` (session/ChatSessionManager.ts)
 
 Persists:
 
@@ -193,21 +235,36 @@ interface StoredMessage {
 
 Storage: `this.loadData()` / `this.saveData()` with optional cap on retained sessions (`maxSessions`).
 
-### 5.7 `CursorSettingsTab` (settings/CursorSettingsTab.ts)
+### 5.10 `CursorSettingsTab` (settings/CursorSettingsTab.ts)
+
+**Global**
 
 | Setting | Type | Default |
 |---------|------|---------|
-| `apiKey` | password input | `""` |
-| `defaultModelId` | dropdown from `/v1/models` | server default |
-| `defaultMode` | `plan` \| `agent` | `plan` |
+| `backend` | `openai-compatible` \| `cursor-rest` \| `cursor-sdk-local` | `openai-compatible` |
 | `includeActiveNote` | boolean | `true` |
 | `maxContextChars` | number | `32000` |
 | `showThinking` | boolean | `false` |
 | `openChatOnStartup` | boolean | `false` |
+
+**BYOK block** (`settings.byok`) — see [BYOK.md](./BYOK.md)
+
+| Setting | Type |
+|---------|------|
+| `apiKey`, `baseUrl`, `model` | provider credentials |
+
+**Cursor block** (`settings.cursor`) — for `cursor-rest` and `cursor-sdk-local`
+
+| Setting | Type | Default |
+|---------|------|---------|
+| `apiKey` | password (`crsr_…`) | `""` |
+| `defaultModelId` | dropdown from `/v1/models` | server default |
+| `defaultMode` | `plan` \| `agent` | `plan` |
+| `bridgeUrl` | string | `http://127.0.0.1:8765` |
 | `repoUrl` | string (optional) | `""` |
 | `repoStartingRef` | string | `main` |
 
-**Test connection** button calls `GET /v1/me`.
+**Test connection** — BYOK: `GET /models`; Cursor REST: `GET /v1/me`; Bridge: `GET /health`.
 
 ## 6. Request lifecycle
 
@@ -281,45 +338,47 @@ Recommend a **first-run consent modal** explaining that note content is transmit
 
 ## 9. Phased delivery
 
-### Phase 0 — Scaffold (this repo)
+### Phase 0 — Scaffold
 
-- [x] Design docs
-- [ ] `manifest.json`, esbuild, sample plugin layout
-- [ ] Empty `ItemView` + settings tab
+- [x] Design docs (incl. BYOK + SDK bridge)
+- [ ] `manifest.json`, esbuild, `BackendRouter` stub
+- [ ] Empty `ItemView` + settings tab with backend picker
 
-### Phase 1 — MVP chat
+### Phase 1 — BYOK MVP (default backend)
 
-- API key settings + `/v1/me` validation
-- Create no-repo agent, stream first reply
-- Single session, markdown render, cancel
+- `openai-compatible` provider client + streaming
+- Vault context injection, single session, markdown render
+- See [BYOK.md](./BYOK.md)
 
-### Phase 2 — Multi-session UX
+### Phase 2 — Cursor REST
 
-- Session list, titles auto-derived from first prompt
-- Model picker (`/v1/models`)
-- Vault context: active note + selection
+- `crsr_…` settings, `/v1/me`, no-repo cloud agent, SSE
+- See [API-INTEGRATION.md](./API-INTEGRATION.md)
 
-### Phase 3 — Power features
+### Phase 3 — Multi-session + context
 
-- `@note` mentions, tool-call cards in UI
-- Optional GitHub `repos` on agent create
-- Export transcript to markdown note
-- Usage display (`/v1/agents/:id/usage`)
+- Session list, `@note` mentions, model pickers per backend
+- Tool-call cards (Cursor backends only)
 
-### Phase 4 — Polish
+### Phase 4 — SDK bridge (optional package)
 
-- Theme-aware CSS variables
-- Command palette integrations
-- Stream resume + robust mobile story (if Obsidian adds streamable `requestUrl`)
+- `obsidian-cursor-bridge` — TypeScript or Python
+- `cursor-sdk-local` backend, vault `cwd`, file edits on disk
+- See [SDK-BRIDGE.md](./SDK-BRIDGE.md)
+
+### Phase 5 — Polish
+
+- Backend switcher UX, unified transcript export
+- Repo-linked cloud agents, usage display, theme/CSS
 
 ## 10. Future extensions
 
 | Extension | Description |
 |-----------|-------------|
-| **Local bridge** | Optional Node process running `@cursor/sdk` against vault path on disk |
-| **MCP: Obsidian** | Expose vault search/read as MCP server referenced in `mcpServers` on agent create |
-| **Apply edits** | Parse assistant suggestions into `app.vault.modify` patches with user approval |
-| **Webhooks** | When Cursor ships v1 webhooks, sync run completion while Obsidian is closed |
+| **Anthropic native adapter** | Non-OpenAI-shaped BYOK provider |
+| **MCP: Obsidian** | Vault search MCP on bridge for cloud agents |
+| **Apply edits (BYOK)** | Parse suggestions → `app.vault.modify` with approval |
+| **Webhooks** | Cursor v1 webhooks for async run completion |
 
 ## 11. Dependencies (planned)
 
@@ -331,7 +390,7 @@ Recommend a **first-run consent modal** explaining that note content is transmit
 | `eventsource-parser` | SSE framing |
 | `dompurify` | Sanitize rendered HTML (if not using Obsidian's `MarkdownRenderer` only) |
 
-No `@cursor/sdk` in the plugin bundle.
+No `@cursor/sdk` / `cursor-sdk` in the **plugin** bundle — only in optional bridge package.
 
 ## 12. Open questions
 

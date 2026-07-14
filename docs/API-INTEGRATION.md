@@ -1,10 +1,12 @@
-# Cursor API integration
+# Cursor API integration (`cursor-rest` backend)
 
-Reference for wiring the Obsidian plugin to Cursor's public APIs.
+Reference for the **`cursor-rest`** backend: Cloud Agents API v1 over HTTPS from the Obsidian plugin.
 
-**Primary source:** [Cloud Agents API v1](https://cursor.com/docs/cloud-agent/api/endpoints) (public beta — schemas may change).
+> **Not the only path.** For BYOK (OpenAI/Anthropic direct), see [BYOK.md](./BYOK.md). For local agents with filesystem access, see [SDK-BRIDGE.md](./SDK-BRIDGE.md). Decision guide: [BACKEND-SELECTION.md](./BACKEND-SELECTION.md).
 
-**Not used in-plugin:** [@cursor/sdk TypeScript SDK](https://cursor.com/docs/sdk/typescript) (Node ≥ 22, local executor binaries).
+**Primary source:** [Cloud Agents API v1](https://cursor.com/docs/cloud-agent/api/endpoints) (public beta).
+
+**SDK alternative:** [@cursor/sdk](https://cursor.com/docs/sdk/typescript) (TypeScript) and [`cursor-sdk`](https://cursor.com/docs/sdk/python) (Python) wrap the same platform — use via [SDK-BRIDGE.md](./SDK-BRIDGE.md) when you need local `cwd` or SDK ergonomics, not inside the plugin bundle.
 
 ---
 
@@ -247,7 +249,8 @@ Regenerate or diff when Cursor publishes OpenAPI updates.
 
 | Expectation | Reality |
 |-------------|---------|
-| OpenAI-compatible `/v1/chat/completions` | **No** — agent + run model |
+| OpenAI-compatible `/v1/chat/completions` | **No** — use [BYOK backend](./BYOK.md) instead |
+| BYOK OpenAI key through Cursor | **No** — use provider-direct BYOK or Cursor `crsr_` key |
 | Live sync with Cursor IDE chat tabs | **No** — separate agent instances |
-| Direct vault file tools | **No** — inject context in `prompt.text` or add MCP later |
-| BYOK provider keys | **No** — Cursor-hosted models via API key billing |
+| Direct vault file tools (REST only) | **No** — inject context in `prompt.text` or use [SDK bridge](./SDK-BRIDGE.md) |
+| In-plugin `@cursor/sdk` | **No** — runs in optional bridge process |
