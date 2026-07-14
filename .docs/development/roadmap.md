@@ -9,7 +9,7 @@ Track implementation across focused pull requests against **`main`**.
 | PR | Branch | Scope | Status |
 |----|--------|-------|--------|
 | **#1** | `cursor/plugin-scaffold-byok-db56` | Scaffold + BYOK MVP | **Done** (v0.1.0) |
-| **#2** | `cursor/cursor-rest-backend-db56` | Cursor REST (`crsr_…`) + SSE | Planned |
+| **#2** | `cursor/cursor-rest-backend-db56` | Cursor REST (`crsr_…`) + SSE | **Done** (v0.2.0) |
 | **#3** | `cursor/multi-session-ux-db56` | Sessions list, `@mentions`, polish | Planned |
 | **#4** | `cursor/sdk-bridge-stub-db56` | Optional local SDK bridge package | Planned |
 
@@ -34,7 +34,7 @@ See [BYOK](../backends/byok.md) · [UX specification](../architecture/ux.md)
 
 ## PR #2 — Cursor REST
 
-**Branch:** `cursor/cursor-rest-backend-db56` (off `main` after PR #1 merges)
+**Branch:** `cursor/cursor-rest-backend-db56` (merged in v0.2.0)
 
 - `CursorApiClient` + `CursorRestBackend`
 - `crsr_…` settings, `GET /v1/me`, agent/run lifecycle

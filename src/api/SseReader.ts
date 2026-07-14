@@ -1,6 +1,6 @@
 import { createParser, type EventSourceMessage } from "eventsource-parser";
 
-/** Parse one SSE chunk; ponytail: minimal helper for self-check script. */
+/** Parse one OpenAI SSE data line; ponytail: minimal helper for self-check script. */
 export function parseSseDataLine(data: string): { text?: string; done?: boolean; error?: string } {
   if (data === "[DONE]") {
     return { done: true };
@@ -21,6 +21,46 @@ export function parseSseDataLine(data: string): { text?: string; done?: boolean;
     // ignore malformed chunks
   }
   return {};
+}
+
+export type CursorSseChunk =
+  | { kind: "assistant"; text: string }
+  | { kind: "thinking"; text: string }
+  | { kind: "result"; text?: string }
+  | { kind: "error"; message: string }
+  | { kind: "done" }
+  | { kind: "status"; status: string };
+
+/** Parse Cursor Cloud Agents SSE event payload. */
+export function parseCursorSseEvent(eventType: string, data: string): CursorSseChunk | null {
+  if (eventType === "heartbeat") {
+    return null;
+  }
+  if (eventType === "done" || data === "{}") {
+    return { kind: "done" };
+  }
+  try {
+    const json = JSON.parse(data) as Record<string, unknown>;
+    switch (eventType) {
+      case "assistant":
+        return { kind: "assistant", text: String(json.text ?? "") };
+      case "thinking":
+        return { kind: "thinking", text: String(json.text ?? "") };
+      case "result":
+        return { kind: "result", text: json.text != null ? String(json.text) : undefined };
+      case "error":
+        return {
+          kind: "error",
+          message: String(json.message ?? json.code ?? "Stream error"),
+        };
+      case "status":
+        return { kind: "status", status: String(json.status ?? "") };
+      default:
+        return null;
+    }
+  } catch {
+    return null;
+  }
 }
 
 export async function* readOpenAiSseStream(
@@ -44,6 +84,74 @@ export async function* readOpenAiSseStream(
         queue.push(parsed.text);
       } else if (parsed.done) {
         done = true;
+      }
+      resolve?.();
+      resolve = null;
+    },
+  });
+
+  const pump = async (): Promise<void> => {
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      if (readerDone) {
+        done = true;
+        resolve?.();
+        break;
+      }
+      parser.feed(decoder.decode(value, { stream: true }));
+    }
+  };
+
+  void pump().catch((err: unknown) => {
+    streamError = err instanceof Error ? err.message : String(err);
+    done = true;
+    resolve?.();
+  });
+
+  while (!done || queue.length > 0) {
+    if (signal?.aborted) {
+      await reader.cancel();
+      throw new DOMException("Aborted", "AbortError");
+    }
+    if (queue.length > 0) {
+      yield queue.shift()!;
+      continue;
+    }
+    if (streamError) {
+      throw new Error(streamError);
+    }
+    if (!done) {
+      await new Promise<void>((r) => {
+        resolve = r;
+      });
+    }
+  }
+}
+
+export async function* readCursorSseStream(
+  body: ReadableStream<Uint8Array>,
+  signal?: AbortSignal,
+): AsyncGenerator<CursorSseChunk> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  const queue: CursorSseChunk[] = [];
+  let resolve: (() => void) | null = null;
+  let done = false;
+  let streamError: string | null = null;
+
+  const parser = createParser({
+    onEvent(event: EventSourceMessage) {
+      const eventType = event.event || "message";
+      const parsed = parseCursorSseEvent(eventType, event.data);
+      if (parsed) {
+        if (parsed.kind === "error") {
+          streamError = parsed.message;
+          done = true;
+        } else if (parsed.kind === "done") {
+          done = true;
+        } else {
+          queue.push(parsed);
+        }
       }
       resolve?.();
       resolve = null;

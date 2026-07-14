@@ -1,4 +1,5 @@
 import type { ChatBackendId } from "../types/chat";
+import type { CursorConversationMode } from "../types/cursor-api";
 
 export interface ByokSettings {
   apiKey: string;
@@ -11,6 +12,8 @@ export interface ByokSettings {
 export interface CursorApiSettings {
   apiKey: string;
   defaultModelId: string;
+  defaultMode: CursorConversationMode;
+  showThinking: boolean;
   bridgeUrl: string;
 }
 
@@ -38,6 +41,8 @@ export const DEFAULT_SETTINGS: CursorChatSettings = {
   cursor: {
     apiKey: "",
     defaultModelId: "",
+    defaultMode: "plan",
+    showThinking: false,
     bridgeUrl: "http://127.0.0.1:8765",
   },
 };

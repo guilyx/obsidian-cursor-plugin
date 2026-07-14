@@ -16,12 +16,16 @@ export interface ChatSession {
   messages: StoredMessage[];
   createdAt: string;
   updatedAt: string;
+  /** Cursor Cloud Agent id (`bc-…`) when using cursor-rest */
+  cursorAgentId?: string;
 }
 
 export type StreamEvent =
   | { type: "assistant-delta"; text: string }
   | { type: "assistant-done"; text: string }
-  | { type: "error"; message: string };
+  | { type: "thinking-delta"; text: string }
+  | { type: "error"; message: string }
+  | { type: "run-started"; agentId: string; runId: string };
 
 export interface SendMessageInput {
   session: ChatSession;
