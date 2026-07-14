@@ -1,6 +1,22 @@
+---
+title: Development
+tags:
+  - obsidian-cursor-plugin
+  - dev
+aliases:
+  - DEVELOPMENT
+  - Development guide
+  - Build guide
+parent: "[[Home]]"
+---
+
 # Development guide
 
+[[Home|← Documentation index]]
+
 How to implement **obsidian-cursor-plugin** after the design docs.
+
+> Read first: [[BACKEND-SELECTION]] · [[DESIGN]] · backend spec ([[BYOK]] / [[API-INTEGRATION]] / [[SDK-BRIDGE]])
 
 ## Prerequisites
 
@@ -8,7 +24,8 @@ How to implement **obsidian-cursor-plugin** after the design docs.
 |------|---------|
 | Node.js | ≥ 18 (22+ only if you work on optional local bridge) |
 | Obsidian | ≥ 1.5 (desktop for v1) |
-| Cursor account | API key with Cloud Agents access |
+| Cursor account | Only for `cursor-rest` / SDK bridge (`crsr_…` key) |
+| Provider API key | Only for BYOK backend |
 | Git | clone this repo |
 
 ## Planned project layout
@@ -19,11 +36,14 @@ obsidian-cursor-plugin/
 ├── package.json
 ├── esbuild.config.mjs
 ├── docs/
-│   ├── BACKEND-SELECTION.md    ← start here
+│   ├── Home.md                 ← Obsidian MOC (start here in vault)
+│   ├── BACKEND-SELECTION.md
 │   ├── BYOK.md
-│   ├── API-INTEGRATION.md      ← cursor-rest
-│   ├── SDK-BRIDGE.md           ← optional sidecar
-│   └── …
+│   ├── API-INTEGRATION.md
+│   ├── SDK-BRIDGE.md
+│   ├── DESIGN.md
+│   ├── DEVELOPMENT.md
+│   └── UX.md
 ├── src/
 │   ├── main.ts
 │   ├── backends/
@@ -47,24 +67,25 @@ obsidian-cursor-plugin/
 - [ ] `BackendRouter` + `ByokBackend`
 - [ ] OpenAI-compatible streaming client
 - [ ] Settings: `apiKey`, `baseUrl`, `model`
-- [ ] See [BYOK.md](./BYOK.md)
+- [ ] See [[BYOK]]
 
 ### Phase 2 — Cursor REST
 
 - [ ] `CursorRestBackend` wrapping `CursorApiClient`
 - [ ] `crsr_…` settings, `GET /v1/me`, SSE
-- [ ] See [API-INTEGRATION.md](./API-INTEGRATION.md)
+- [ ] See [[API-INTEGRATION]]
 
 ### Phase 3 — Shared UX
 
 - [ ] Backend picker in settings
 - [ ] Multi-session, vault context, `@mentions`
+- [ ] UI per [[UX]]
 
 ### Phase 4 — SDK bridge (optional repo)
 
 - [ ] `bridge/` package (TS or Python)
 - [ ] `CursorBridgeBackend` → localhost API
-- [ ] See [SDK-BRIDGE.md](./SDK-BRIDGE.md)
+- [ ] See [[SDK-BRIDGE]]
 
 ## Toolchain
 
@@ -159,7 +180,7 @@ Set `isDesktopOnly: true` until mobile streaming is solved.
 ### CSS
 
 - [ ] Use Obsidian CSS variables (`--background-primary`, `--text-normal`, `--interactive-accent`)
-- [ ] See [UX.md](./UX.md)
+- [ ] UI per [[UX]]
 
 ## Testing strategy
 
@@ -208,6 +229,15 @@ Plugin stores key in vault plugin data — use a **dedicated dev key** with mini
 4. Submit to Obsidian Community Plugin store (separate process)
 
 ## Related reading
+
+### In this vault
+
+- [[Home]] — documentation index
+- [[DESIGN]] — architecture
+- [[UX]] — UI specification
+- [[BACKEND-SELECTION]] — which backend to build first
+
+### External
 
 - [Obsidian Plugin Developer Docs](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
 - [Cursor Cloud Agents API](https://cursor.com/docs/cloud-agent/api/endpoints)

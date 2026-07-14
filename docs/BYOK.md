@@ -1,6 +1,24 @@
+---
+title: BYOK
+tags:
+  - obsidian-cursor-plugin
+  - backend
+  - byok
+aliases:
+  - Bring Your Own Key
+  - openai-compatible
+  - Provider BYOK
+parent: "[[Home]]"
+backend: openai-compatible
+---
+
 # BYOK — Bring Your Own Key (provider-direct)
 
+[[Home|← Documentation index]] · [[BACKEND-SELECTION|Backend selection]]
+
 Default path for users who want **simple AI chat** in Obsidian without a Cursor API key or agent infrastructure.
+
+> Chosen via [[BACKEND-SELECTION]]. Contrasts with [[API-INTEGRATION]] and [[SDK-BRIDGE]].
 
 ## Overview
 
@@ -113,3 +131,15 @@ Or minimal completion with `max_tokens: 1`.
 - Keys stay in plugin settings; never in note frontmatter
 - Do not log request bodies containing vault content in production
 - Warn on first use: note text is sent to the **chosen provider**, not Cursor
+
+---
+
+## See also
+
+- [[Home]] — documentation index
+- [[BACKEND-SELECTION]] — when to use BYOK vs Cursor backends
+- [[DESIGN#5.3 BackendRouter]] — `ByokBackend` component
+- [[API-INTEGRATION]] — Cursor API path (agent tools, MCP)
+- [[SDK-BRIDGE]] — local agent on vault disk
+- [[UX#Message rendering]] — how assistant replies render in Obsidian
+- [[DEVELOPMENT#Phase 1 — BYOK (default)]] — implementation checklist

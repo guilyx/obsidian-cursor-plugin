@@ -1,12 +1,28 @@
+---
+title: API Integration
+tags:
+  - obsidian-cursor-plugin
+  - backend
+  - cursor-api
+aliases:
+  - API-INTEGRATION
+  - cursor-rest
+  - Cloud Agents API
+parent: "[[Home]]"
+backend: cursor-rest
+---
+
 # Cursor API integration (`cursor-rest` backend)
+
+[[Home|← Documentation index]] · [[BACKEND-SELECTION|Backend selection]]
 
 Reference for the **`cursor-rest`** backend: Cloud Agents API v1 over HTTPS from the Obsidian plugin.
 
-> **Not the only path.** For BYOK (OpenAI/Anthropic direct), see [BYOK.md](./BYOK.md). For local agents with filesystem access, see [SDK-BRIDGE.md](./SDK-BRIDGE.md). Decision guide: [BACKEND-SELECTION.md](./BACKEND-SELECTION.md).
+> **Not the only path.** For BYOK (OpenAI/Anthropic direct), see [[BYOK]]. For local agents with filesystem access, see [[SDK-BRIDGE]]. Decision guide: [[BACKEND-SELECTION]].
 
 **Primary source:** [Cloud Agents API v1](https://cursor.com/docs/cloud-agent/api/endpoints) (public beta).
 
-**SDK alternative:** [@cursor/sdk](https://cursor.com/docs/sdk/typescript) (TypeScript) and [`cursor-sdk`](https://cursor.com/docs/sdk/python) (Python) wrap the same platform — use via [SDK-BRIDGE.md](./SDK-BRIDGE.md) when you need local `cwd` or SDK ergonomics, not inside the plugin bundle.
+**SDK alternative:** [@cursor/sdk](https://cursor.com/docs/sdk/typescript) (TypeScript) and [`cursor-sdk`](https://cursor.com/docs/sdk/python) (Python) wrap the same platform — use via [[SDK-BRIDGE]] when you need local `cwd` or SDK ergonomics, not inside the plugin bundle.
 
 ---
 
@@ -249,8 +265,21 @@ Regenerate or diff when Cursor publishes OpenAPI updates.
 
 | Expectation | Reality |
 |-------------|---------|
-| OpenAI-compatible `/v1/chat/completions` | **No** — use [BYOK backend](./BYOK.md) instead |
-| BYOK OpenAI key through Cursor | **No** — use provider-direct BYOK or Cursor `crsr_` key |
+| OpenAI-compatible `/v1/chat/completions` | **No** — use [[BYOK]] instead |
+| BYOK OpenAI key through Cursor | **No** — use provider-direct [[BYOK]] or Cursor `crsr_` key |
 | Live sync with Cursor IDE chat tabs | **No** — separate agent instances |
-| Direct vault file tools (REST only) | **No** — inject context in `prompt.text` or use [SDK bridge](./SDK-BRIDGE.md) |
+| Direct vault file tools (REST only) | **No** — inject context in `prompt.text` or use [[SDK-BRIDGE]] |
 | In-plugin `@cursor/sdk` | **No** — runs in optional bridge process |
+
+---
+
+## See also
+
+- [[Home]] — documentation index
+- [[BACKEND-SELECTION]] — when to use `cursor-rest`
+- [[BYOK]] — OpenAI-compatible alternative
+- [[SDK-BRIDGE]] — local agent with disk access
+- [[DESIGN#5.5 CursorApiClient]] — plugin wrapper
+- [[DESIGN#6. Request lifecycle]] — agent/run flow
+- [[DEVELOPMENT#Phase 2 — Cursor REST]] — implementation checklist
+- [[UX#States]] — connection and error UI

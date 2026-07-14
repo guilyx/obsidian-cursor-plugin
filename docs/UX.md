@@ -1,6 +1,22 @@
+---
+title: UX
+tags:
+  - obsidian-cursor-plugin
+  - ux
+aliases:
+  - UX Specification
+  - UI spec
+  - Chat UI
+parent: "[[Home]]"
+---
+
 # UX specification
 
+[[Home|← Documentation index]]
+
 User-facing behaviour for the Cursor chat sidebar.
+
+> Architecture: [[DESIGN]] · Backends: [[BACKEND-SELECTION]] · Settings fields: [[DESIGN#5.10 CursorSettingsTab]]
 
 ## Placement
 
@@ -174,3 +190,15 @@ Support light and dark without separate themes.
 ## Link-out
 
 Assistant responses may include `https://cursor.com/agents/bc-…` — render as external link *Open in Cursor web* for deep inspection of agent runs.
+
+---
+
+## See also
+
+- [[Home]] — documentation index
+- [[DESIGN#5.2 CursorChatView]] — view component this spec implements
+- [[BACKEND-SELECTION]] — backend-specific UI (tool cards, thinking blocks)
+- [[BYOK]] — simpler empty states (no Cursor key)
+- [[API-INTEGRATION]] — streaming and cancel behaviour
+- [[SDK-BRIDGE]] — tool-call cards when local agent runs tools
+- [[DEVELOPMENT#Phase 3 — Shared UX]] — when to implement each UI block

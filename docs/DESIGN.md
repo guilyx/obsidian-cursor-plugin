@@ -1,4 +1,18 @@
+---
+title: Design
+tags:
+  - obsidian-cursor-plugin
+  - architecture
+aliases:
+  - DESIGN
+  - Architecture
+  - System design
+parent: "[[Home]]"
+---
+
 # Design — obsidian-cursor-plugin
+
+[[Home|← Documentation index]]
 
 ## 1. Problem statement
 
@@ -6,7 +20,7 @@ Obsidian users want Cursor-grade AI assistance **inside their note-taking workfl
 
 This plugin bridges that gap: a native Obsidian sidebar chat with **pluggable backends** — BYOK to any LLM provider, Cursor Cloud Agents over REST, or full local agents via an optional **SDK bridge** (TypeScript or Python).
 
-> **Start here:** [BACKEND-SELECTION.md](./BACKEND-SELECTION.md) — pick the right path for your needs.
+> **Start here:** [[BACKEND-SELECTION]] — pick the right path for your needs.
 
 ## 2. Goals
 
@@ -59,11 +73,11 @@ flowchart TB
 
 | Backend | Credential | See |
 |---------|------------|-----|
-| `openai-compatible` | Provider BYOK (`sk-…`) | [BYOK.md](./BYOK.md) |
-| `cursor-rest` | Cursor API key (`crsr_…`) | [API-INTEGRATION.md](./API-INTEGRATION.md) |
-| `cursor-sdk-local` | `crsr_…` on bridge host | [SDK-BRIDGE.md](./SDK-BRIDGE.md) |
+| `openai-compatible` | Provider BYOK (`sk-…`) | [[BYOK]] |
+| `cursor-rest` | Cursor API key (`crsr_…`) | [[API-INTEGRATION]] |
+| `cursor-sdk-local` | `crsr_…` on bridge host | [[SDK-BRIDGE]] |
 
-Full decision matrix: [BACKEND-SELECTION.md](./BACKEND-SELECTION.md).
+Full decision matrix: [[BACKEND-SELECTION]].
 
 ### 4.2 Runtime choice: three layers, not one
 
@@ -147,7 +161,7 @@ class BackendRouter {
 
 ### 5.4 `ByokBackend` (backends/ByokBackend.ts)
 
-OpenAI-compatible chat completions. See [BYOK.md](./BYOK.md).
+OpenAI-compatible chat completions. See [[BYOK]].
 
 ### 5.5 `CursorApiClient` (api/CursorApiClient.ts)
 
@@ -172,7 +186,7 @@ Auth header: `Authorization: Bearer ${apiKey}`.
 
 ### 5.6 `CursorBridgeClient` (api/CursorBridgeClient.ts)
 
-HTTP client for localhost SDK bridge. Proxies send/stream/cancel. See [SDK-BRIDGE.md](./SDK-BRIDGE.md).
+HTTP client for localhost SDK bridge. Proxies send/stream/cancel. See [[SDK-BRIDGE]].
 
 ### 5.7 `SseReader` (api/SseReader.ts)
 
@@ -247,7 +261,7 @@ Storage: `this.loadData()` / `this.saveData()` with optional cap on retained ses
 | `showThinking` | boolean | `false` |
 | `openChatOnStartup` | boolean | `false` |
 
-**BYOK block** (`settings.byok`) — see [BYOK.md](./BYOK.md)
+**BYOK block** (`settings.byok`) — see [[BYOK]]
 
 | Setting | Type |
 |---------|------|
@@ -348,12 +362,12 @@ Recommend a **first-run consent modal** explaining that note content is transmit
 
 - `openai-compatible` provider client + streaming
 - Vault context injection, single session, markdown render
-- See [BYOK.md](./BYOK.md)
+- See [[BYOK]]
 
 ### Phase 2 — Cursor REST
 
 - `crsr_…` settings, `/v1/me`, no-repo cloud agent, SSE
-- See [API-INTEGRATION.md](./API-INTEGRATION.md)
+- See [[API-INTEGRATION]]
 
 ### Phase 3 — Multi-session + context
 
@@ -364,7 +378,7 @@ Recommend a **first-run consent modal** explaining that note content is transmit
 
 - `obsidian-cursor-bridge` — TypeScript or Python
 - `cursor-sdk-local` backend, vault `cwd`, file edits on disk
-- See [SDK-BRIDGE.md](./SDK-BRIDGE.md)
+- See [[SDK-BRIDGE]]
 
 ### Phase 5 — Polish
 
@@ -398,3 +412,13 @@ No `@cursor/sdk` / `cursor-sdk` in the **plugin** bundle — only in optional br
 2. **Default model** — Omit `model` on create to use Cursor account default, or always require explicit pick?
 3. **Agent cleanup** — Cursor agent lifetime / max agents per user; need archival policy for old threads.
 4. **Billing UX** — Show per-run token usage inline or link to Cursor dashboard only?
+
+---
+
+## See also
+
+- [[Home]] — documentation index
+- [[BACKEND-SELECTION]] — backend decision matrix
+- [[BYOK]] · [[API-INTEGRATION]] · [[SDK-BRIDGE]] — backend specs
+- [[UX]] — sidebar chat UI tied to this architecture
+- [[DEVELOPMENT]] — implementation checklist and project layout
