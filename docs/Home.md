@@ -26,6 +26,7 @@ cssclass: obsidian-cursor-docs
 | Understand the full architecture | [[DESIGN]] |
 | Build the plugin | [[DEVELOPMENT]] |
 | Design the chat UI | [[UX]] |
+| Track PR implementation plan | [[IMPLEMENTATION-ROADMAP]] |
 
 ## Document map
 
@@ -55,6 +56,7 @@ flowchart TB
 | [[DESIGN]] | Architecture, components, phases | `#architecture` |
 | [[DEVELOPMENT]] | Toolchain, layout, checklist | `#dev` |
 | [[UX]] | Sidebar chat UI spec | `#ux` |
+| [[IMPLEMENTATION-ROADMAP]] | Multi-PR build plan | `#dev` `#roadmap` |
 
 ## Three backends at a glance
 

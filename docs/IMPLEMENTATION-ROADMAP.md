@@ -1,0 +1,84 @@
+---
+title: Implementation Roadmap
+tags:
+  - obsidian-cursor-plugin
+  - dev
+  - roadmap
+aliases:
+  - PR roadmap
+  - Implementation PRs
+parent: "[[Home]]"
+---
+
+# Implementation roadmap (multi-PR)
+
+[[Home|← Documentation index]] · [[DEVELOPMENT]]
+
+Track implementation across focused pull requests against **`main`**.
+
+## PR status
+
+| PR | Branch | Scope | Status |
+|----|--------|-------|--------|
+| **#1** | `cursor/plugin-scaffold-byok-db56` | Scaffold + BYOK MVP | In progress |
+| **#2** | `cursor/cursor-rest-backend-db56` | Cursor REST (`crsr_…`) + SSE | Planned |
+| **#3** | `cursor/multi-session-ux-db56` | Sessions list, `@mentions`, polish | Planned |
+| **#4** | `cursor/sdk-bridge-stub-db56` | Optional local SDK bridge package | Planned |
+
+## PR #1 — Scaffold + BYOK (this PR)
+
+**Delivers**
+
+- `manifest.json`, esbuild, TypeScript project
+- Plugin shell: ribbon, command, settings tab
+- `BackendRouter` + `ByokBackend` (OpenAI-compatible streaming)
+- `VaultContextBuilder` (active note + selection)
+- `CursorChatView` sidebar with markdown rendering
+- Single local session persistence
+
+**Does not include**
+
+- `cursor-rest` or SDK bridge
+- Multi-session UI
+- Backend switcher beyond settings dropdown (other backends show “coming soon”)
+
+See [[BYOK]] · [[UX]]
+
+## PR #2 — Cursor REST
+
+**Branch:** `cursor/cursor-rest-backend-db56` (off `main` after PR #1 merges)
+
+- `CursorApiClient` + `CursorRestBackend`
+- `crsr_…` settings, `GET /v1/me`, agent/run lifecycle
+- SSE from `GET …/runs/:runId/stream`
+- Map chat thread → `bc-*` agent id
+
+See [[API-INTEGRATION]]
+
+## PR #3 — Shared UX
+
+**Branch:** `cursor/multi-session-ux-db56`
+
+- Session switcher in header
+- `@note` fuzzy mentions in composer
+- Tool-call cards (Cursor backends)
+- Privacy first-run modal
+
+See [[UX]]
+
+## PR #4 — SDK bridge (optional)
+
+**Branch:** `cursor/sdk-bridge-stub-db56`
+
+- `bridge/` package (TypeScript `@cursor/sdk`)
+- `CursorBridgeBackend` + localhost contract
+- Settings: bridge URL, start/stop helper
+
+See [[SDK-BRIDGE]]
+
+---
+
+## See also
+
+- [[DESIGN#9. Phased delivery]]
+- [[DEVELOPMENT#Implementation checklist (revised)]]

@@ -33,7 +33,17 @@ Open the `docs/` folder in your vault and start at **[[docs/Home|Home]]** (map o
 
 ## Status
 
-**Design phase** — documentation complete; implementation not started.
+**v0.1.0 — BYOK MVP** (PR #1 in progress). See [docs/IMPLEMENTATION-ROADMAP.md](docs/IMPLEMENTATION-ROADMAP.md) for multi-PR plan.
+
+### Build
+
+```bash
+npm install
+npm run build      # → main.js
+npm run check:sse  # SSE parser self-check
+```
+
+Symlink this folder into `Vault/.obsidian/plugins/obsidian-cursor-chat/` (needs `main.js`, `manifest.json`, `styles.css`).
 
 ## License
 

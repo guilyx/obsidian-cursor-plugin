@@ -9,24 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Obsidian vault MOC with wikilinks and frontmatter (`docs/Home.md`)
-- Cross-linked **See also** sections on every design note
-- YAML frontmatter (title, tags, aliases, parent) on all `docs/*.md`
-- Backend selection guide with BYOK vs Cursor REST vs SDK bridge (`docs/BACKEND-SELECTION.md`)
-- BYOK provider-direct design (`docs/BYOK.md`)
-- SDK bridge design for TypeScript and Python (`docs/SDK-BRIDGE.md`)
-- Initial plugin design documentation (`docs/DESIGN.md`)
-- Cursor Cloud Agents API integration guide (`docs/API-INTEGRATION.md`)
-- Development guide with planned project structure (`docs/DEVELOPMENT.md`)
-- Chat UI/UX specification (`docs/UX.md`)
-- Documentation index (`docs/README.md`)
-- Expanded root `README.md` with architecture overview
+- **PR #1 implementation:** plugin scaffold (esbuild, TypeScript, manifest)
+- BYOK backend (`openai-compatible`) with OpenAI-compatible streaming chat
+- Sidebar `CursorChatView` with markdown rendering, send/stop, new chat
+- Settings tab: API key, base URL, model, temperature, context options
+- `VaultContextBuilder` (active note + editor selection)
+- `BackendRouter` stub for future `cursor-rest` / SDK bridge
+- Local session persistence in plugin data
+- SSE parser self-check script (`npm run check:sse`)
+- Multi-PR roadmap: [[IMPLEMENTATION-ROADMAP]]
 
 ### Changed
 
-- `docs/README.md` points Obsidian users to Home MOC
-- All internal doc links use Obsidian wikilinks (`[[NOTE]]`) alongside GitHub paths
-- Revised architecture: `BackendRouter` with three backends (`docs/DESIGN.md`)
-- Default recommended backend is now **BYOK** (`openai-compatible`) for Phase 1 MVP
-- Cursor SDK documented as optional sidecar, not rejected
-- Phased delivery reordered: BYOK → REST → bridge
+- `docs/Home.md` links to implementation roadmap
+
+## [0.1.0] - 2026-07-14
+
+### Added
+
+- Obsidian vault MOC with wikilinks and frontmatter (`docs/Home.md`)
+- Cross-linked **See also** sections on every design note
+- YAML frontmatter (title, tags, aliases, parent) on all `docs/*.md`
+- Backend selection guide (`docs/BACKEND-SELECTION.md`)
+- BYOK, SDK bridge, API integration, design, development, UX docs
+
+### Changed
+
+- Default recommended backend: **BYOK** (`openai-compatible`) for Phase 1
+- Cursor SDK documented as optional sidecar
+- Phased delivery: BYOK → REST → bridge
