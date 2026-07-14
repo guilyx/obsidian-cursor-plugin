@@ -1,0 +1,20 @@
+{
+  "name": "obsidian-cursor-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "check:sse": "node scripts/sse-self-check.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "builtin-modules": "^5.0.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "^1.7.2",
+    "typescript": "^5.8.0"
+  },
+  "dependencies": {
+    "eventsource-parser": "^3.0.0"
+  }
+}
