@@ -22,6 +22,7 @@ export interface CursorChatSettings {
   includeActiveNote: boolean;
   maxContextChars: number;
   openChatOnStartup: boolean;
+  hasAcknowledgedPrivacy: boolean;
   byok: ByokSettings;
   cursor: CursorApiSettings;
 }
@@ -31,6 +32,7 @@ export const DEFAULT_SETTINGS: CursorChatSettings = {
   includeActiveNote: true,
   maxContextChars: 32000,
   openChatOnStartup: false,
+  hasAcknowledgedPrivacy: false,
   byok: {
     apiKey: "",
     baseUrl: "https://api.openai.com/v1",

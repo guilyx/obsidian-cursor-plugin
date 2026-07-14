@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import { MarkdownView } from "obsidian";
+import { MarkdownView, TFile } from "obsidian";
 import type { CursorChatSettings } from "../settings/CursorSettings";
 
 export class VaultContextBuilder {
@@ -8,7 +8,7 @@ export class VaultContextBuilder {
     private readonly settings: CursorChatSettings,
   ) {}
 
-  async build(): Promise<string> {
+  async build(extraPaths: string[] = []): Promise<string> {
     const parts: string[] = [];
 
     if (this.settings.includeActiveNote) {
@@ -17,6 +17,14 @@ export class VaultContextBuilder {
         const body = await this.app.vault.read(file);
         const trimmed = this.truncate(body);
         parts.push(`## Active note: [[${file.basename}]]\n\n${trimmed}`);
+      }
+    }
+
+    for (const path of extraPaths) {
+      const file = this.app.vault.getAbstractFileByPath(path);
+      if (file instanceof TFile) {
+        const body = await this.app.vault.read(file);
+        parts.push(`## Attached: [[${file.basename}]]\n\n${this.truncate(body)}`);
       }
     }
 
@@ -30,6 +38,16 @@ export class VaultContextBuilder {
     }
 
     return `## Vault context\n\n${parts.join("\n\n---\n\n")}\n\n---\n\n`;
+  }
+
+  getActiveNoteLabel(): string | null {
+    const file = this.app.workspace.getActiveFile();
+    return file ? file.basename : null;
+  }
+
+  getSelectionSummary(): { chars: number } | null {
+    const selection = this.getSelection();
+    return selection ? { chars: selection.length } : null;
   }
 
   private getSelection(): string {

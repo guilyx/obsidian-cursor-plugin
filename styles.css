@@ -10,11 +10,34 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
+.cursor-chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cursor-chat-session-select {
+  max-width: 160px;
+  font-size: var(--font-ui-smaller);
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  padding: 2px 4px;
+}
+
 .cursor-chat-title {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.cursor-chat-new-btn {
+  padding: 2px 8px;
   font-weight: 600;
 }
 
@@ -25,6 +48,19 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.cursor-chat-streaming .cursor-chat-bubble--assistant:last-child .cursor-chat-bubble-body::after {
+  content: "▋";
+  animation: cursor-chat-blink 1s step-end infinite;
+  margin-left: 2px;
+  color: var(--interactive-accent);
+}
+
+@keyframes cursor-chat-blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 .cursor-chat-empty {
@@ -54,6 +90,61 @@
 .cursor-chat-bubble-body {
   line-height: 1.5;
   word-break: break-word;
+}
+
+.cursor-chat-tool-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.cursor-chat-tool-card {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 6px 8px;
+  font-size: var(--font-ui-smaller);
+}
+
+.cursor-chat-tool-card-header {
+  font-family: var(--font-monospace);
+  color: var(--text-muted);
+}
+
+.cursor-chat-tool-card-body {
+  margin: 4px 0 0;
+  font-size: var(--font-ui-smaller);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.cursor-chat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.cursor-chat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.cursor-chat-chip-remove {
+  cursor: pointer;
+  color: var(--text-faint);
+}
+
+.cursor-chat-chip-remove:hover {
+  color: var(--text-error);
 }
 
 .cursor-chat-status {

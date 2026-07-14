@@ -124,6 +124,15 @@ export class CursorRestBackend implements ChatBackend {
           yield { type: "assistant-delta", text: chunk.text };
         } else if (chunk.kind === "thinking" && this.settings.cursor.showThinking) {
           yield { type: "thinking-delta", text: chunk.text };
+        } else if (chunk.kind === "tool_call") {
+          yield {
+            type: "tool-call",
+            callId: chunk.callId,
+            name: chunk.name,
+            status: chunk.status,
+            args: chunk.args,
+            result: chunk.result,
+          };
         } else if (chunk.kind === "result" && chunk.text) {
           onDelta(chunk.text);
           yield { type: "assistant-delta", text: chunk.text };

@@ -24,6 +24,7 @@ export type StreamEvent =
   | { type: "assistant-delta"; text: string }
   | { type: "assistant-done"; text: string }
   | { type: "thinking-delta"; text: string }
+  | { type: "tool-call"; callId: string; name: string; status: string; args?: string; result?: string }
   | { type: "error"; message: string }
   | { type: "run-started"; agentId: string; runId: string };
 

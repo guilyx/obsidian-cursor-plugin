@@ -2,14 +2,24 @@ import { ItemView, MarkdownRenderer, WorkspaceLeaf } from "obsidian";
 import type CursorChatPlugin from "../main";
 import { VIEW_TYPE } from "../constants";
 import type { StoredMessage } from "../types/chat";
+import { VaultFileSuggestModal } from "./VaultFileSuggestModal";
+import { PrivacyNoticeModal } from "./PrivacyNoticeModal";
+
+interface AttachmentChip {
+  path: string;
+  label: string;
+}
 
 export class CursorChatView extends ItemView {
   private messagesEl!: HTMLElement;
+  private chipsEl!: HTMLElement;
+  private sessionSelectEl!: HTMLSelectElement;
   private composerEl!: HTMLTextAreaElement;
   private sendBtn!: HTMLButtonElement;
   private stopBtn!: HTMLButtonElement;
   private statusEl!: HTMLElement;
   private abortController: AbortController | null = null;
+  private attachments: AttachmentChip[] = [];
 
   constructor(leaf: WorkspaceLeaf, private readonly plugin: CursorChatPlugin) {
     super(leaf);
@@ -34,10 +44,23 @@ export class CursorChatView extends ItemView {
 
     const header = root.createDiv({ cls: "cursor-chat-header" });
     header.createSpan({ text: "Cursor Chat", cls: "cursor-chat-title" });
-    const newBtn = header.createEl("button", { text: "New", cls: "cursor-chat-new-btn" });
+
+    const headerActions = header.createDiv({ cls: "cursor-chat-header-actions" });
+    this.sessionSelectEl = headerActions.createEl("select", { cls: "cursor-chat-session-select" });
+    this.sessionSelectEl.addEventListener("change", () => {
+      const id = this.sessionSelectEl.value;
+      if (this.plugin.sessions.setActive(id)) {
+        void this.plugin.persistSessions();
+        this.renderMessages();
+        this.updateStatus();
+      }
+    });
+
+    const newBtn = headerActions.createEl("button", { text: "+", cls: "cursor-chat-new-btn", attr: { title: "New chat" } });
     newBtn.onclick = () => {
       this.plugin.sessions.createSession(this.plugin.settings.backend);
       void this.plugin.persistSessions();
+      this.refreshSessionSelect();
       this.renderMessages();
       this.updateStatus();
     };
@@ -49,31 +72,123 @@ export class CursorChatView extends ItemView {
     this.statusEl = root.createDiv({ cls: "cursor-chat-status" });
     this.updateStatus();
 
+    this.chipsEl = root.createDiv({ cls: "cursor-chat-chips" });
+    this.renderContextChips();
+
     const composerWrap = root.createDiv({ cls: "cursor-chat-composer-wrap" });
     this.composerEl = composerWrap.createEl("textarea", {
       cls: "cursor-chat-composer",
-      attr: { placeholder: "Ask about your notes…", "aria-label": "Message" },
+      attr: { placeholder: "Ask about your notes… (@ to attach)", "aria-label": "Message" },
     });
     this.composerEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         void this.sendMessage();
       }
+      if (e.key === "@") {
+        window.setTimeout(() => this.openMentionPicker(), 0);
+      }
     });
 
     const actions = composerWrap.createDiv({ cls: "cursor-chat-actions" });
-    this.stopBtn = actions.createEl("button", { text: "Stop", cls: "cursor-chat-stop-btn" });
+    this.stopBtn = actions.createEl("button", { text: "Stop", cls: "cursor-chat-stop-btn", attr: { "aria-label": "Stop generation" } });
     this.stopBtn.style.display = "none";
     this.stopBtn.onclick = () => this.stopGeneration();
 
     this.sendBtn = actions.createEl("button", { text: "Send", cls: "cursor-chat-send-btn mod-cta" });
     this.sendBtn.onclick = () => void this.sendMessage();
 
+    this.refreshSessionSelect();
     this.renderMessages();
+    this.maybeShowPrivacyNotice();
   }
 
   async onClose(): Promise<void> {
     this.stopGeneration();
+  }
+
+  private maybeShowPrivacyNotice(): void {
+    if (this.plugin.settings.hasAcknowledgedPrivacy) {
+      return;
+    }
+    new PrivacyNoticeModal(
+      this.app,
+      () => {
+        this.plugin.settings.hasAcknowledgedPrivacy = true;
+        void this.plugin.saveSettings();
+      },
+      () => {
+        this.app.setting.open();
+        this.app.setting.openTabById(this.plugin.manifest.id);
+      },
+    ).open();
+  }
+
+  private refreshSessionSelect(): void {
+    const sessions = this.plugin.sessions.listSessions();
+    const active = this.plugin.sessions.getActive();
+    this.sessionSelectEl.empty();
+    for (const session of sessions) {
+      const opt = this.sessionSelectEl.createEl("option", { text: session.title, value: session.id });
+      if (session.id === active?.id) {
+        opt.selected = true;
+      }
+    }
+    if (sessions.length === 0) {
+      this.sessionSelectEl.createEl("option", { text: "New chat", value: "" });
+    }
+  }
+
+  private openMentionPicker(): void {
+    new VaultFileSuggestModal(this.app, (file) => {
+      if (this.attachments.some((a) => a.path === file.path)) {
+        return;
+      }
+      this.attachments.push({ path: file.path, label: file.basename });
+      this.renderContextChips();
+      const mention = `[[${file.basename}]] `;
+      this.composerEl.value = `${this.composerEl.value}${mention}`;
+      this.composerEl.focus();
+    }).open();
+  }
+
+  private renderContextChips(): void {
+    this.chipsEl.empty();
+    const chips: Array<{ label: string; onRemove?: () => void }> = [];
+
+    const activeNote = this.plugin.contextBuilder.getActiveNoteLabel();
+    if (activeNote && this.plugin.settings.includeActiveNote) {
+      chips.push({ label: `📄 ${activeNote}` });
+    }
+
+    const selection = this.plugin.contextBuilder.getSelectionSummary();
+    if (selection) {
+      chips.push({ label: `✂️ selection (${selection.chars} chars)` });
+    }
+
+    for (const att of this.attachments) {
+      chips.push({
+        label: `📎 ${att.label}`,
+        onRemove: () => {
+          this.attachments = this.attachments.filter((a) => a.path !== att.path);
+          this.renderContextChips();
+        },
+      });
+    }
+
+    if (chips.length === 0) {
+      this.chipsEl.style.display = "none";
+      return;
+    }
+
+    this.chipsEl.style.display = "flex";
+    for (const chip of chips) {
+      const el = this.chipsEl.createSpan({ cls: "cursor-chat-chip", text: chip.label });
+      if (chip.onRemove) {
+        const remove = el.createSpan({ cls: "cursor-chat-chip-remove", text: "×" });
+        remove.onclick = chip.onRemove;
+      }
+    }
   }
 
   private updateStatus(): void {
@@ -133,10 +248,33 @@ export class CursorChatView extends ItemView {
     return body;
   }
 
+  private appendToolCard(
+    parent: HTMLElement,
+    name: string,
+    status: string,
+    args?: string,
+    result?: string,
+  ): HTMLElement {
+    const card = parent.createDiv({ cls: "cursor-chat-tool-card" });
+    card.createDiv({ cls: "cursor-chat-tool-card-header", text: `tool: ${name} · ${status}` });
+    if (args || result) {
+      const details = card.createEl("details");
+      details.createEl("summary", { text: "Details" });
+      const pre = details.createEl("pre", { cls: "cursor-chat-tool-card-body" });
+      pre.setText([args ? `args: ${args}` : "", result ? `result: ${result}` : ""].filter(Boolean).join("\n"));
+    }
+    return card;
+  }
+
   private setStreaming(streaming: boolean): void {
     this.sendBtn.disabled = streaming;
     this.composerEl.disabled = streaming;
     this.stopBtn.style.display = streaming ? "inline-block" : "none";
+    if (streaming) {
+      this.messagesEl.addClass("cursor-chat-streaming");
+    } else {
+      this.messagesEl.removeClass("cursor-chat-streaming");
+    }
   }
 
   private stopGeneration(): void {
@@ -157,6 +295,8 @@ export class CursorChatView extends ItemView {
     }
 
     const session = this.plugin.sessions.ensureActive(this.plugin.settings.backend);
+    const attachmentPaths = this.attachments.map((a) => a.path);
+
     const userMsg: StoredMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -165,6 +305,9 @@ export class CursorChatView extends ItemView {
     };
     this.plugin.sessions.addMessage(session.id, userMsg);
     this.composerEl.value = "";
+    this.attachments = [];
+    this.renderContextChips();
+    this.refreshSessionSelect();
     this.renderMessages();
 
     const assistantMsg: StoredMessage = {
@@ -174,12 +317,17 @@ export class CursorChatView extends ItemView {
       createdAt: new Date().toISOString(),
     };
     this.plugin.sessions.addMessage(session.id, assistantMsg);
-    const assistantBody = this.appendMessageBubble(assistantMsg);
+    const assistantBubble = this.messagesEl.createDiv({
+      cls: "cursor-chat-bubble cursor-chat-bubble--assistant",
+    });
+    assistantBubble.createDiv({ cls: "cursor-chat-bubble-label", text: "Assistant" });
+    const assistantBody = assistantBubble.createDiv({ cls: "cursor-chat-bubble-body" });
+    const toolContainer = assistantBubble.createDiv({ cls: "cursor-chat-tool-cards" });
 
     this.abortController = new AbortController();
     this.setStreaming(true);
 
-    const contextPrefix = await this.plugin.contextBuilder.build();
+    const contextPrefix = await this.plugin.contextBuilder.build(attachmentPaths);
 
     try {
       const backend = this.plugin.router.getBackend();
@@ -199,10 +347,12 @@ export class CursorChatView extends ItemView {
           await MarkdownRenderer.render(this.app, full, assistantBody, "", this);
           this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
         } else if (event.type === "thinking-delta") {
-          // ponytail: append thinking inline until dedicated UI in PR #3
-          full += `\n\n> *Thinking:* ${event.text}`;
+          full += `\n\n<details><summary>Thinking</summary>\n\n${event.text}\n\n</details>`;
           assistantBody.empty();
           await MarkdownRenderer.render(this.app, full, assistantBody, "", this);
+        } else if (event.type === "tool-call") {
+          this.appendToolCard(toolContainer, event.name, event.status, event.args, event.result);
+          this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
         } else if (event.type === "assistant-done") {
           full = event.text;
         } else if (event.type === "error") {
@@ -223,6 +373,7 @@ export class CursorChatView extends ItemView {
       this.abortController = null;
       this.setStreaming(false);
       this.updateStatus();
+      this.renderContextChips();
     }
   }
 }

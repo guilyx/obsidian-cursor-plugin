@@ -26,6 +26,7 @@ export function parseSseDataLine(data: string): { text?: string; done?: boolean;
 export type CursorSseChunk =
   | { kind: "assistant"; text: string }
   | { kind: "thinking"; text: string }
+  | { kind: "tool_call"; callId: string; name: string; status: string; args?: string; result?: string }
   | { kind: "result"; text?: string }
   | { kind: "error"; message: string }
   | { kind: "done" }
@@ -46,6 +47,15 @@ export function parseCursorSseEvent(eventType: string, data: string): CursorSseC
         return { kind: "assistant", text: String(json.text ?? "") };
       case "thinking":
         return { kind: "thinking", text: String(json.text ?? "") };
+      case "tool_call":
+        return {
+          kind: "tool_call",
+          callId: String(json.callId ?? ""),
+          name: String(json.name ?? "tool"),
+          status: String(json.status ?? ""),
+          args: json.args != null ? JSON.stringify(json.args) : undefined,
+          result: json.result != null ? JSON.stringify(json.result) : undefined,
+        };
       case "result":
         return { kind: "result", text: json.text != null ? String(json.text) : undefined };
       case "error":
