@@ -25,7 +25,7 @@ export class CursorSettingsTab extends PluginSettingTab {
         dropdown
           .addOption("openai-compatible", "BYOK (OpenAI-compatible)")
           .addOption("cursor-rest", "Cursor REST (crsr_…)")
-          .addOption("cursor-sdk-local", "Cursor SDK bridge (coming soon)")
+          .addOption("cursor-sdk-local", "Cursor SDK bridge (local)")
           .setValue(this.plugin.settings.backend)
           .onChange(async (value) => {
             this.plugin.settings.backend = value as CursorChatSettings["backend"];
@@ -35,14 +35,8 @@ export class CursorSettingsTab extends PluginSettingTab {
       );
 
     if (this.plugin.settings.backend === "cursor-sdk-local") {
-      containerEl.createEl("p", {
-        text: "SDK bridge is not available yet. Use BYOK or Cursor REST.",
-        cls: "cursor-chat-settings-warn",
-      });
-      return;
-    }
-
-    if (this.plugin.settings.backend === "cursor-rest") {
+      this.displayBridgeSettings(containerEl);
+    } else if (this.plugin.settings.backend === "cursor-rest") {
       this.displayCursorRestSettings(containerEl);
     } else {
       this.displayByokSettings(containerEl);
@@ -202,6 +196,52 @@ export class CursorSettingsTab extends PluginSettingTab {
       );
   }
 
+  private displayBridgeSettings(containerEl: HTMLElement): void {
+    const cursor = this.plugin.settings.cursor;
+
+    containerEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "Run the local bridge: cd bridge && BRIDGE_TOKEN=… npm start",
+    });
+
+    new Setting(containerEl)
+      .setName("Bridge URL")
+      .addText((text) =>
+        text
+          .setValue(cursor.bridgeUrl)
+          .onChange(async (value) => {
+            this.plugin.settings.cursor.bridgeUrl = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Bridge token")
+      .setDesc("Must match BRIDGE_TOKEN on the bridge process.")
+      .addText((text) =>
+        text
+          .setPlaceholder("dev-bridge-token")
+          .setValue(cursor.bridgeToken)
+          .onChange(async (value) => {
+            this.plugin.settings.cursor.bridgeToken = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Default model")
+      .setDesc("Passed to bridge on agent create (stub ignores until full SDK).")
+      .addText((text) =>
+        text
+          .setPlaceholder("composer-2.5")
+          .setValue(cursor.defaultModelId)
+          .onChange(async (value) => {
+            this.plugin.settings.cursor.defaultModelId = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+  }
+
   private displaySharedSettings(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName("Include active note")
@@ -232,9 +272,16 @@ export class CursorSettingsTab extends PluginSettingTab {
 
   private displayTestConnection(containerEl: HTMLElement): void {
     const isCursor = this.plugin.settings.backend === "cursor-rest";
+    const isBridge = this.plugin.settings.backend === "cursor-sdk-local";
     new Setting(containerEl)
       .setName("Test connection")
-      .setDesc(isCursor ? "Calls GET /v1/me on api.cursor.com." : "Calls GET /models on your base URL.")
+      .setDesc(
+        isBridge
+          ? "Calls GET /health on the local bridge."
+          : isCursor
+            ? "Calls GET /v1/me on api.cursor.com."
+            : "Calls GET /models on your base URL.",
+      )
       .addButton((btn) =>
         btn.setButtonText("Test").onClick(async () => {
           btn.setDisabled(true);

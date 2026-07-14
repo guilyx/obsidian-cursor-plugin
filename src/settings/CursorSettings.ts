@@ -15,6 +15,7 @@ export interface CursorApiSettings {
   defaultMode: CursorConversationMode;
   showThinking: boolean;
   bridgeUrl: string;
+  bridgeToken: string;
 }
 
 export interface CursorChatSettings {
@@ -46,5 +47,6 @@ export const DEFAULT_SETTINGS: CursorChatSettings = {
     defaultMode: "plan",
     showThinking: false,
     bridgeUrl: "http://127.0.0.1:8765",
+    bridgeToken: "dev-bridge-token",
   },
 };

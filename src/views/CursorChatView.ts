@@ -195,7 +195,12 @@ export class CursorChatView extends ItemView {
     const { backend, byok, cursor } = this.plugin.settings;
 
     if (backend === "cursor-sdk-local") {
-      this.statusEl.setText("SDK bridge not available — switch backend in settings.");
+      const { bridgeUrl } = cursor;
+      if (!bridgeUrl.trim()) {
+        this.statusEl.setText("Configure bridge URL in settings.");
+        return;
+      }
+      this.statusEl.setText(`SDK bridge · ${bridgeUrl}`);
       return;
     }
 
@@ -286,11 +291,6 @@ export class CursorChatView extends ItemView {
   private async sendMessage(): Promise<void> {
     const text = this.composerEl.value.trim();
     if (!text || this.abortController) {
-      return;
-    }
-
-    if (this.plugin.settings.backend === "cursor-sdk-local") {
-      this.statusEl.setText("SDK bridge is not implemented yet.");
       return;
     }
 
