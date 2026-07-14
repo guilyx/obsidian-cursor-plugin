@@ -17,17 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BackendRouter` stub for future `cursor-rest` / SDK bridge
 - Local session persistence in plugin data
 - SSE parser self-check script (`npm run check:sse`)
-- Multi-PR roadmap: [[IMPLEMENTATION-ROADMAP]]
+- Multi-PR roadmap: see `.docs/development/roadmap.md`
 
 ### Changed
 
-- `docs/Home.md` links to implementation roadmap
+- Documentation moved to `.docs/` with MkDocs Material site and GitHub Pages workflow
 
 ## [0.1.0] - 2026-07-14
 
 ### Added
 
-- Obsidian vault MOC with wikilinks and frontmatter (`docs/Home.md`)
+- Obsidian vault MOC with wikilinks (`docs/` — superseded by `.docs/` MkDocs site)
 - Cross-linked **See also** sections on every design note
 - YAML frontmatter (title, tags, aliases, parent) on all `docs/*.md`
 - Backend selection guide (`docs/BACKEND-SELECTION.md`)

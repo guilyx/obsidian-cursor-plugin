@@ -1,18 +1,6 @@
----
-title: Implementation Roadmap
-tags:
-  - obsidian-cursor-plugin
-  - dev
-  - roadmap
-aliases:
-  - PR roadmap
-  - Implementation PRs
-parent: "[[Home]]"
----
-
 # Implementation roadmap (multi-PR)
 
-[[Home|← Documentation index]] · [[DEVELOPMENT]]
+[← Documentation index](../index.md) · [Development guide](../development/guide.md)
 
 Track implementation across focused pull requests against **`main`**.
 
@@ -20,7 +8,7 @@ Track implementation across focused pull requests against **`main`**.
 
 | PR | Branch | Scope | Status |
 |----|--------|-------|--------|
-| **#1** | `cursor/plugin-scaffold-byok-db56` | Scaffold + BYOK MVP | In progress |
+| **#1** | `cursor/plugin-scaffold-byok-db56` | Scaffold + BYOK MVP | **Done** (v0.1.0) |
 | **#2** | `cursor/cursor-rest-backend-db56` | Cursor REST (`crsr_…`) + SSE | Planned |
 | **#3** | `cursor/multi-session-ux-db56` | Sessions list, `@mentions`, polish | Planned |
 | **#4** | `cursor/sdk-bridge-stub-db56` | Optional local SDK bridge package | Planned |
@@ -42,7 +30,7 @@ Track implementation across focused pull requests against **`main`**.
 - Multi-session UI
 - Backend switcher beyond settings dropdown (other backends show “coming soon”)
 
-See [[BYOK]] · [[UX]]
+See [BYOK](../backends/byok.md) · [UX specification](../architecture/ux.md)
 
 ## PR #2 — Cursor REST
 
@@ -53,7 +41,7 @@ See [[BYOK]] · [[UX]]
 - SSE from `GET …/runs/:runId/stream`
 - Map chat thread → `bc-*` agent id
 
-See [[API-INTEGRATION]]
+See [Cursor REST](../backends/cursor-rest.md)
 
 ## PR #3 — Shared UX
 
@@ -64,7 +52,7 @@ See [[API-INTEGRATION]]
 - Tool-call cards (Cursor backends)
 - Privacy first-run modal
 
-See [[UX]]
+See [UX specification](../architecture/ux.md)
 
 ## PR #4 — SDK bridge (optional)
 
@@ -74,11 +62,4 @@ See [[UX]]
 - `CursorBridgeBackend` + localhost contract
 - Settings: bridge URL, start/stop helper
 
-See [[SDK-BRIDGE]]
-
----
-
-## See also
-
-- [[DESIGN#9. Phased delivery]]
-- [[DEVELOPMENT#Implementation checklist (revised)]]
+See [SDK bridge](../backends/sdk-bridge.md)

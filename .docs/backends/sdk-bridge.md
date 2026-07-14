@@ -1,24 +1,10 @@
----
-title: SDK Bridge
-tags:
-  - obsidian-cursor-plugin
-  - backend
-  - sdk
-aliases:
-  - SDK-BRIDGE
-  - cursor-sdk-local
-  - Cursor SDK bridge
-parent: "[[Home]]"
-backend: cursor-sdk-local
----
-
 # Cursor SDK bridge (local agent mode)
 
-[[Home|← Documentation index]] · [[BACKEND-SELECTION|Backend selection]]
+[← Documentation index](../index.md) · [Backend selection](../architecture/backend-selection.md)
 
 When **`cursor-rest` is not enough** — you need the agent to read and edit vault files on disk — run the Cursor SDK in a **sidecar process** and talk to it from the Obsidian plugin over localhost.
 
-> Compare: [[API-INTEGRATION]] (cloud REST, no sidecar) · [[BYOK]] (no Cursor at all)
+> Compare: [Cursor REST](../backends/cursor-rest.md) (cloud REST, no sidecar) · [BYOK](../backends/byok.md) (no Cursor at all)
 
 Applies to both:
 
@@ -211,15 +197,3 @@ Usually redundant if plugin already has `cursor-rest`. Prefer REST for cloud unl
 - User won't install Node 22+ or Python 3.10+
 - Vault is not a local folder
 - Mobile-only workflow
-
----
-
-## See also
-
-- [[Home]] — documentation index
-- [[BACKEND-SELECTION]] — when the bridge is required
-- [[API-INTEGRATION]] — cloud alternative without sidecar
-- [[DESIGN#5.6 CursorBridgeClient]] — plugin HTTP client
-- [[DESIGN#5.8 VaultContextBuilder]] — vs native disk access via `local.cwd`
-- [[DEVELOPMENT#Phase 4 — SDK bridge (optional repo)]] — implementation checklist
-- [[UX#Tool calls]] — tool-call cards in sidebar (Phase 3)

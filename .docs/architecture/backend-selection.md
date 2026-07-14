@@ -1,23 +1,10 @@
----
-title: Backend Selection
-tags:
-  - obsidian-cursor-plugin
-  - backend
-  - architecture
-aliases:
-  - BACKEND-SELECTION
-  - backend-selection
-  - Which backend
-parent: "[[Home]]"
----
-
 # Backend selection — BYOK, SDK, or REST?
 
-[[Home|← Documentation index]]
+[← Documentation index](../index.md)
 
 The plugin supports **multiple connection backends**. Pick based on what you need — not everything requires the Cursor SDK or even a Cursor API key.
 
-> Related: [[BYOK]] · [[API-INTEGRATION]] · [[SDK-BRIDGE]] · [[DESIGN]]
+> Related: [BYOK](../backends/byok.md) · [Cursor REST](../backends/cursor-rest.md) · [SDK bridge](../backends/sdk-bridge.md) · [Architecture design](../architecture/design.md)
 
 ## Three credential models (do not confuse them)
 
@@ -83,7 +70,7 @@ Settings:
 | `baseUrl` | `https://api.openai.com/v1` or `https://api.scaleway.ai/v1` |
 | `model` | `gpt-4o`, `claude-sonnet-4-…`, etc. |
 
-See [[BYOK]].
+See [BYOK](../backends/byok.md).
 
 ### 2. `cursor-rest` (Cursor API key — no sidecar)
 
@@ -94,7 +81,7 @@ See [[BYOK]].
 - `@cursor/sdk` **not** bundled in plugin
 - Vault context still injected into `prompt.text` (Cursor has no vault mount)
 
-See [[API-INTEGRATION]].
+See [Cursor REST](../backends/cursor-rest.md).
 
 ### 3. `cursor-sdk-local` (bridge — TypeScript or Python)
 
@@ -125,7 +112,7 @@ POST /runs/:id/cancel → run.cancel()
 
 User still provides **`crsr_…`** to the bridge (env or settings). The plugin never embeds the SDK.
 
-See [[SDK-BRIDGE]].
+See [SDK bridge](../backends/sdk-bridge.md).
 
 ### 4. `cursor-sdk-cloud` (bridge optional)
 
@@ -186,15 +173,3 @@ Only show relevant fields per backend. **Never send BYOK keys to Cursor** or `cr
 | **2** | `cursor-rest` | Cursor API key + cloud agent + SSE |
 | **3** | `cursor-sdk-local` | Optional bridge package + local agent mode |
 | **4** | Polish | Backend switcher, unified session UI, MCP via bridge |
-
----
-
-## See also
-
-- [[Home]] — documentation index
-- [[BYOK]] — provider-direct backend (`openai-compatible`)
-- [[API-INTEGRATION]] — Cursor REST backend (`cursor-rest`)
-- [[SDK-BRIDGE]] — local SDK sidecar (`cursor-sdk-local`)
-- [[DESIGN#4. Architectural overview]] — `BackendRouter` diagram
-- [[DEVELOPMENT#Implementation checklist (revised)]] — build order per phase
-- [[UX#States]] — UI differences per backend

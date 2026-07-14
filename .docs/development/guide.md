@@ -1,22 +1,10 @@
----
-title: Development
-tags:
-  - obsidian-cursor-plugin
-  - dev
-aliases:
-  - DEVELOPMENT
-  - Development guide
-  - Build guide
-parent: "[[Home]]"
----
-
 # Development guide
 
-[[Home|← Documentation index]]
+[← Documentation index](../index.md)
 
 How to implement **obsidian-cursor-plugin** after the design docs.
 
-> Read first: [[BACKEND-SELECTION]] · [[DESIGN]] · backend spec ([[BYOK]] / [[API-INTEGRATION]] / [[SDK-BRIDGE]])
+> Read first: [Backend selection](../architecture/backend-selection.md) · [Architecture design](../architecture/design.md) · backend spec ([BYOK](../backends/byok.md) / [Cursor REST](../backends/cursor-rest.md) / [SDK bridge](../backends/sdk-bridge.md))
 
 ## Prerequisites
 
@@ -35,15 +23,7 @@ obsidian-cursor-plugin/
 ├── manifest.json
 ├── package.json
 ├── esbuild.config.mjs
-├── docs/
-│   ├── Home.md                 ← Obsidian MOC (start here in vault)
-│   ├── BACKEND-SELECTION.md
-│   ├── BYOK.md
-│   ├── API-INTEGRATION.md
-│   ├── SDK-BRIDGE.md
-│   ├── DESIGN.md
-│   ├── DEVELOPMENT.md
-│   └── UX.md
+└── .docs/               # documentation site (MkDocs)
 ├── src/
 │   ├── main.ts
 │   ├── backends/
@@ -67,25 +47,25 @@ obsidian-cursor-plugin/
 - [ ] `BackendRouter` + `ByokBackend`
 - [ ] OpenAI-compatible streaming client
 - [ ] Settings: `apiKey`, `baseUrl`, `model`
-- [ ] See [[BYOK]]
+- [ ] See [BYOK](../backends/byok.md)
 
 ### Phase 2 — Cursor REST
 
 - [ ] `CursorRestBackend` wrapping `CursorApiClient`
 - [ ] `crsr_…` settings, `GET /v1/me`, SSE
-- [ ] See [[API-INTEGRATION]]
+- [ ] See [Cursor REST](../backends/cursor-rest.md)
 
 ### Phase 3 — Shared UX
 
 - [ ] Backend picker in settings
 - [ ] Multi-session, vault context, `@mentions`
-- [ ] UI per [[UX]]
+- [ ] UI per [UX specification](../architecture/ux.md)
 
 ### Phase 4 — SDK bridge (optional repo)
 
 - [ ] `bridge/` package (TS or Python)
 - [ ] `CursorBridgeBackend` → localhost API
-- [ ] See [[SDK-BRIDGE]]
+- [ ] See [SDK bridge](../backends/sdk-bridge.md)
 
 ## Toolchain
 
@@ -180,7 +160,7 @@ Set `isDesktopOnly: true` until mobile streaming is solved.
 ### CSS
 
 - [ ] Use Obsidian CSS variables (`--background-primary`, `--text-normal`, `--interactive-accent`)
-- [ ] UI per [[UX]]
+- [ ] UI per [UX specification](../architecture/ux.md)
 
 ## Testing strategy
 
@@ -232,10 +212,10 @@ Plugin stores key in vault plugin data — use a **dedicated dev key** with mini
 
 ### In this vault
 
-- [[Home]] — documentation index
-- [[DESIGN]] — architecture
-- [[UX]] — UI specification
-- [[BACKEND-SELECTION]] — which backend to build first
+- [Documentation home](../index.md) — documentation index
+- [Architecture design](../architecture/design.md) — architecture
+- [UX specification](../architecture/ux.md) — UI specification
+- [Backend selection](../architecture/backend-selection.md) — which backend to build first
 
 ### External
 
