@@ -14,10 +14,10 @@ import { CursorAgentCliBackend } from "./backends/CursorAgentCliBackend";
 import { BackendRouter } from "./backends/BackendRouter";
 import { createObsidianHttpClient } from "./api/httpClient";
 import { LocalSdkBridgeManager } from "./localSdk/LocalSdkBridgeManager";
+import { resolvePluginDir } from "./pluginDir";
 
 const MESSAGE_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 
-declare const __dirname: string;
 
 export default class CursorChatPlugin extends Plugin {
   settings: CursorChatSettings = DEFAULT_SETTINGS;
@@ -72,7 +72,7 @@ export default class CursorChatPlugin extends Plugin {
   }
 
   getPluginDir(): string {
-    return __dirname;
+    return resolvePluginDir(this);
   }
 
   openSetupWizard(): void {
@@ -94,6 +94,7 @@ export default class CursorChatPlugin extends Plugin {
     const cursorHttp = createObsidianHttpClient(requestUrl);
     this.localSdkBridge = new LocalSdkBridgeManager(
       () => this.getPluginDir(),
+      () => this.manifest.version,
       () => this.settings.cursor,
       cursorHttp,
     );
