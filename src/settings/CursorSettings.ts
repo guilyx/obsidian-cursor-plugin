@@ -18,8 +18,11 @@ export interface CursorApiSettings {
   defaultModelId: string;
   defaultMode: CursorConversationMode;
   showThinking: boolean;
-  bridgeUrl: string;
-  bridgeToken: string;
+}
+
+export interface CursorAgentSettings {
+  /** Executable name or path for the Cursor Agent CLI (default: agent). */
+  cliPath: string;
 }
 
 export interface CursorChatSettings {
@@ -28,16 +31,19 @@ export interface CursorChatSettings {
   maxContextChars: number;
   openChatOnStartup: boolean;
   hasAcknowledgedPrivacy: boolean;
+  hasCompletedSetup: boolean;
   byok: ByokSettings;
   cursor: CursorApiSettings;
+  cursorAgent: CursorAgentSettings;
 }
 
 export const DEFAULT_SETTINGS: CursorChatSettings = {
-  backend: "cursor-rest",
+  backend: "cursor-sdk",
   includeActiveNote: true,
   maxContextChars: 32000,
   openChatOnStartup: false,
   hasAcknowledgedPrivacy: false,
+  hasCompletedSetup: false,
   byok: {
     provider: "openrouter",
     apiKey: "",
@@ -51,7 +57,8 @@ export const DEFAULT_SETTINGS: CursorChatSettings = {
     defaultModelId: "",
     defaultMode: "plan",
     showThinking: false,
-    bridgeUrl: "http://127.0.0.1:8765",
-    bridgeToken: "dev-bridge-token",
+  },
+  cursorAgent: {
+    cliPath: "agent",
   },
 };

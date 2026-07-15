@@ -7,17 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-15
+
 ### Added
 
-- **CI workflow** (`.github/workflows/ci.yml`) — typecheck, build, tests, self-checks on push/PR
-- `npm run typecheck`, `npm run test`, `npm run ci`
-- Node test suite: SSE parser, BYOK providers, API errors, bridge stub integration
+- **Three-backend model** with clear user-facing names:
+  - `cursor-sdk` — Cursor API key (`crsr_…`), Cloud Agents platform
+  - `cursor-agent` — Cursor Agent CLI (`agent -p`), machine login
+  - `llm-gateway` — OpenRouter / LiteLLM / BYOK
+- **Set up Cursor Chat** command + setup wizard modal
+- Auto-open setup wizard on first chat until configured
+- Architecture doc: [Backend model (v0.5+)](.docs/architecture/backend-model.md)
 
 ### Changed
 
-- **Default backend is now Cursor REST** (`cursor-rest`) — Cursor-native out of the box
-- BYOK provider presets: **OpenRouter**, **LiteLLM proxy**, OpenAI, Custom
-- OpenRouter requests include recommended `Referer` / `X-Title` headers
+- **BREAKING:** Renamed backend IDs (`cursor-rest` → `cursor-sdk`, etc.) with automatic migration on load
+- Removed stub SDK bridge from router (CLI replaces it for local agent use)
+- Default backend: `cursor-sdk`
+
+### Removed
+
+- User-facing `cursor-sdk-local` bridge backend (bridge package kept for future sidecar)
 
 ## [0.4.0] - 2026-07-14
 

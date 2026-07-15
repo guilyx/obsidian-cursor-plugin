@@ -26,7 +26,7 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-export class CursorRestBackend implements ChatBackend {
+export class CursorSdkBackend implements ChatBackend {
   constructor(private readonly settings: CursorChatSettings) {}
 
   private client(): CursorApiClient {
