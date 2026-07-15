@@ -104,6 +104,7 @@ export class CursorSdkBackend implements ChatBackend {
 
     let agentId = input.session.cursorAgentId;
     if (agentId && !agentIdMatchesSdkRuntime(agentId, cursor.sdkRuntime)) {
+      // ponytail: stale id from the other runtime (local `agent-…` vs cloud `bc-…`) — start fresh
       agentId = undefined;
     }
     let runId: string;
