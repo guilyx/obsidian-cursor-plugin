@@ -33,6 +33,7 @@ describe("LocalSdkBridgeManager", () => {
 
     const manager = new LocalSdkBridgeManager(
       () => repoRoot,
+      () => "0.5.0",
       () => testSettings().cursor,
       http,
       ((..._args) => {
@@ -115,6 +116,7 @@ describe("LocalSdkBridgeManager", () => {
 
     const manager = new LocalSdkBridgeManager(
       () => repoRoot,
+      () => "0.5.0",
       () => testSettings({ cursor: { apiKey: "crsr_test" } }).cursor,
       http,
       spawnFn,
