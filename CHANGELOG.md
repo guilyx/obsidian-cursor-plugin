@@ -9,15 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`cursor-agent` yolo mode** — passes `--yolo` and `--trust` to skip CLI confirmation prompts (toggle in settings)
-- **Cursor API integration tests** — live tests against `api.cursor.com` when `CURSOR_API_KEY` is set (CI secret)
-- **Obsidian HTTP transport** — SDK backend uses `requestUrl` (bypasses CORS) and polls `GET /runs/:id` when streaming is unavailable
+- **SDK local runtime (default)** — `@cursor/sdk` via `bridge/sdk-server.mjs` (`Agent.create({ local: { cwd } })`)
+- Settings: `cursor.sdkRuntime` (`local` | `cloud`), `bridgeUrl`, `bridgeToken`
+- Local SDK integration tests (`bridge/scripts/sdk-local-integration.mjs`)
+
+### Changed
+
+- **`cursor-sdk` is not cloud-only** — local SDK runs agent loop in Node on vault disk; cloud REST is optional
+- Default `cursor.sdkRuntime`: `local`
+- Cloud Agents billing errors suggest switching to local SDK or CLI
 
 ### Fixed
 
-- **Integration tests** — skip (not fail) when Cursor account lacks usage-based pricing for Cloud Agents (`usage_limit_exceeded`)
-- **API error messages** — parse nested `{ code, message }` objects instead of `[object Object]`
-- **CI workflow** — removed invalid `secrets` in `if` condition (was failing workflow validation)
+- Integration tests skip (not fail) when Cloud Agents billing blocks `POST /v1/agents`
+- API error messages parse nested `{ code, message }` objects
 - **SDK empty replies** — fall back to polling when SSE stream ends without assistant text, on `410`, or on network errors
 - **Chat text selection** — message bubbles are selectable/copyable in the chat sidebar
 

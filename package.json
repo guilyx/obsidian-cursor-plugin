@@ -10,7 +10,7 @@
     "test": "node scripts/run-tests.mjs",
     "test:integration": "node scripts/run-integration-tests.mjs",
     "check:sse": "node scripts/sse-self-check.mjs",
-    "check:bridge": "node --check bridge/server.mjs",
+    "check:bridge": "node --check bridge/server.mjs && node --check bridge/sdk-server.mjs",
     "ci": "npm run typecheck && npm run build && npm run test && npm run check:sse && npm run check:bridge"
   },
   "devDependencies": {

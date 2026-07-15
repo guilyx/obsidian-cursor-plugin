@@ -21,7 +21,7 @@ describe("CursorSdkBackend", () => {
   });
 
   it("validate requires API key", async () => {
-    const backend = new CursorSdkBackend(testSettings({ cursor: { apiKey: "" } }));
+    const backend = new CursorSdkBackend(testSettings({ cursor: { apiKey: "" } }), () => "/vault");
     await assert.rejects(() => backend.validate(), /API key is required/);
   });
 
@@ -35,7 +35,10 @@ describe("CursorSdkBackend", () => {
       throw new Error("unexpected");
     });
 
-    await new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_test" } })).validate();
+    await new CursorSdkBackend(
+      testSettings({ cursor: { apiKey: "crsr_test", sdkRuntime: "cloud" } }),
+      () => "/vault",
+    ).validate();
     assert.equal(called, true);
   });
 
@@ -61,7 +64,10 @@ describe("CursorSdkBackend", () => {
       throw new Error(`unexpected: ${url}`);
     });
 
-    const backend = new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_test" } }));
+    const backend = new CursorSdkBackend(
+      testSettings({ cursor: { apiKey: "crsr_test", sdkRuntime: "cloud" } }),
+      () => "/vault",
+    );
     const events = await collectStreamEvents(
       backend.send({
         session: testSession(),
@@ -120,7 +126,11 @@ describe("CursorSdkBackend", () => {
       },
     };
 
-    const backend = new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_test" } }), http);
+    const backend = new CursorSdkBackend(
+      testSettings({ cursor: { apiKey: "crsr_test", sdkRuntime: "cloud" } }),
+      () => "/vault",
+      http,
+    );
     const events = await collectStreamEvents(
       backend.send({
         session: testSession(),
@@ -150,7 +160,10 @@ describe("CursorSdkBackend", () => {
       throw new Error(`unexpected: ${url}`);
     });
 
-    const backend = new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_test" } }));
+    const backend = new CursorSdkBackend(
+      testSettings({ cursor: { apiKey: "crsr_test", sdkRuntime: "cloud" } }),
+      () => "/vault",
+    );
     await collectStreamEvents(
       backend.send({
         session: testSession({ cursorAgentId: "bc-existing" }),

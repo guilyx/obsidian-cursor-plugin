@@ -8,7 +8,7 @@ import { BACKEND_LABELS } from "../src/backends/backendIds.ts";
 import { testSettings } from "./helpers/settings.ts";
 
 describe("BackendRouter", () => {
-  const sdk = new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_test" } }));
+  const sdk = new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_test" } }), () => "/vault");
   const agent = new CursorAgentCliBackend(testSettings(), () => "/vault");
   const llm = new LlmGatewayBackend(testSettings({ backend: "llm-gateway" }));
 
@@ -37,7 +37,7 @@ describe("backend smoke", () => {
 
   it("all backends expose validate and send", () => {
     for (const backend of [
-      new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_x" } })),
+      new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_x" } }), () => "/vault"),
       new CursorAgentCliBackend(testSettings(), () => "/tmp"),
       new LlmGatewayBackend(testSettings({ backend: "llm-gateway" })),
     ]) {

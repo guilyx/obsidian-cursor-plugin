@@ -81,7 +81,7 @@ export default class CursorChatPlugin extends Plugin {
 
     const llmGateway = new LlmGatewayBackend(this.settings);
     const cursorHttp = createObsidianHttpClient(requestUrl);
-    const cursorSdk = new CursorSdkBackend(this.settings, cursorHttp);
+    const cursorSdk = new CursorSdkBackend(this.settings, getVaultPath, cursorHttp);
     const cursorAgent = new CursorAgentCliBackend(this.settings, getVaultPath);
     this.router = new BackendRouter(this.settings, cursorSdk, cursorAgent, llmGateway);
     this.contextBuilder = new VaultContextBuilder(this.app, this.settings);

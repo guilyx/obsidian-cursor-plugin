@@ -152,8 +152,50 @@ export class CursorSettingsTab extends PluginSettingTab {
 
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "Uses the Cursor API to run agents with your crsr_… key — same agent platform as @cursor/sdk (local or cloud per agent config).",
+      text: "Cursor SDK via @cursor/sdk — local (bridge, default) runs the agent on your vault folder; cloud uses the Cloud Agents REST API.",
     });
+
+    new Setting(containerEl)
+      .setName("SDK runtime")
+      .setDesc("Local = Node bridge with vault cwd. Cloud = remote Cloud Agents (needs usage-based pricing).")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("local", "Local (@cursor/sdk bridge)")
+          .addOption("cloud", "Cloud (REST API)")
+          .setValue(cursor.sdkRuntime)
+          .onChange(async (value) => {
+            this.plugin.settings.cursor.sdkRuntime = value as typeof cursor.sdkRuntime;
+            await this.plugin.saveSettings();
+            this.display();
+          }),
+      );
+
+    if (cursor.sdkRuntime === "local") {
+      new Setting(containerEl)
+        .setName("Bridge URL")
+        .setDesc("Start: cd bridge && npm run start:sdk")
+        .addText((text) =>
+          text
+            .setPlaceholder("http://127.0.0.1:8765")
+            .setValue(cursor.bridgeUrl)
+            .onChange(async (value) => {
+              this.plugin.settings.cursor.bridgeUrl = value.trim() || "http://127.0.0.1:8765";
+              await this.plugin.saveSettings();
+            }),
+        );
+
+      new Setting(containerEl)
+        .setName("Bridge token")
+        .setDesc("Optional Bearer token if BRIDGE_TOKEN is set on the bridge.")
+        .addText((text) =>
+          text
+            .setValue(cursor.bridgeToken)
+            .onChange(async (value) => {
+              this.plugin.settings.cursor.bridgeToken = value;
+              await this.plugin.saveSettings();
+            }),
+        );
+    }
 
     new Setting(containerEl)
       .setName("Cursor API key")
@@ -314,7 +356,9 @@ export class CursorSettingsTab extends PluginSettingTab {
       backend === "cursor-agent"
         ? "Runs agent --version in your vault directory."
         : backend === "cursor-sdk"
-          ? "Calls GET /v1/me on api.cursor.com."
+          ? this.plugin.settings.cursor.sdkRuntime === "local"
+            ? "Checks local SDK bridge /health and vault path."
+            : "Calls GET /v1/me on api.cursor.com."
           : "Calls GET /models on your LLM gateway URL.";
 
     new Setting(containerEl)

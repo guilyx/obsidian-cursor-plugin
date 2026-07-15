@@ -13,11 +13,17 @@ export interface ByokSettings {
   maxTokens: number;
 }
 
+export type SdkRuntime = "local" | "cloud";
+
 export interface CursorApiSettings {
   apiKey: string;
   defaultModelId: string;
   defaultMode: CursorConversationMode;
   showThinking: boolean;
+  /** `local` = @cursor/sdk via bridge (default). `cloud` = Cloud Agents REST API. */
+  sdkRuntime: SdkRuntime;
+  bridgeUrl: string;
+  bridgeToken: string;
 }
 
 export interface CursorAgentSettings {
@@ -59,6 +65,9 @@ export const DEFAULT_SETTINGS: CursorChatSettings = {
     defaultModelId: "",
     defaultMode: "agent",
     showThinking: false,
+    sdkRuntime: "local",
+    bridgeUrl: "http://127.0.0.1:8765",
+    bridgeToken: "",
   },
   cursorAgent: {
     cliPath: "agent",

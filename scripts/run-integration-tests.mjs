@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Run live Cursor API integration tests (requires CURSOR_API_KEY). */
+/** Run live Cursor API + local SDK integration tests (requires CURSOR_API_KEY). */
 import esbuild from "esbuild";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 const root = new URL("..", import.meta.url).pathname;
 const entry = join(root, "tests", "cursorApi.integration.test.ts");
 const out = join(root, "tests", ".bundled", "cursorApi.integration.test.js");
+const bridgeDir = join(root, "bridge");
 
 if (!process.env.CURSOR_API_KEY?.trim()) {
   console.log("CURSOR_API_KEY not set — skipping integration tests");
@@ -23,10 +24,24 @@ await esbuild.build({
   logLevel: "silent",
 });
 
-const result = spawnSync(process.execPath, ["--test", out], {
+const apiResult = spawnSync(process.execPath, ["--test", out], {
   stdio: "inherit",
   cwd: root,
   env: process.env,
 });
 
-process.exit(result.status ?? 1);
+const sdkResult = spawnSync("npm", ["run", "test:integration"], {
+  stdio: "inherit",
+  cwd: bridgeDir,
+  env: process.env,
+  shell: true,
+});
+
+const exitCode =
+  (apiResult.status ?? 1) !== 0
+    ? (apiResult.status ?? 1)
+    : (sdkResult.status ?? 1) !== 0
+      ? (sdkResult.status ?? 1)
+      : 0;
+
+process.exit(exitCode);
