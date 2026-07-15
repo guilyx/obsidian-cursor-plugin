@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **MIT License** — project and `bridge/` package licensed under MIT
 - **In-chat UX** — toolbar with settings, attach, and more menu; drag-and-drop notes/folders into composer; folder context attachments
+- **Header quick switcher** — change backend and model (or mode) without opening settings
+- **Retry on errors** — failed assistant bubbles show a Retry button
+- **Send selection to chat** — command palette entry inserts editor selection into composer
+- **Toggle active note** — include/exclude active note context from the ⋯ menu
+- **Message list drop zone** — drag notes or folders onto the thread area to attach
 - **Auto-start local SDK** — plugin spawns `bridge/sdk-server.mjs` on first use (no manual `cd bridge && npm run start`)
 - **SDK local runtime (default)** — `@cursor/sdk` via `bridge/sdk-server.mjs` (`Agent.create({ local: { cwd } })`)
 - Settings: `cursor.sdkRuntime` (`local` | `cloud`), `bridgeUrl`, `bridgeToken`
@@ -18,8 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Folder attachments** — parse Obsidian drag payloads (`obsidian://`, `[[wikilinks]]`, `app://obsidian.md` HTML); folders listed first in attach picker
 - **Missing local SDK bridge after reinstall** — Community Plugin installs only ship `main.js`; plugin now downloads `bridge/` from GitHub on first use and uses the vault plugin folder path
-- **Cloud SDK `bc-<uuid>` validation error** — ignore or clear `cursorAgentId` when it belongs to the other runtime
+- **Cloud SDK `bc-<uuid>` validation error** — ignore or clear `cursorAgentId` when it belongs to the other runtime (e.g. local `agent-…` id reused after switching to cloud REST)
 - **Bridge integration test** — removed TypeScript `!` syntax from `.mjs` file (CI parse error)
 - Integration tests skip (not fail) when `CURSOR_API_KEY` is missing, invalid, or billing blocks cloud agents
 - API error messages parse nested `{ code, message }` objects

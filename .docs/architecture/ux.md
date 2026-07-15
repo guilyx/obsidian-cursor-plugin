@@ -83,7 +83,15 @@ Click × on chip to exclude from next message.
 
 ### Drag and drop
 
-Drop vault **notes** or **folders** onto the composer or context chip bar. Folders attach up to 20 markdown files into context.
+Drop vault **notes** or **folders** onto the **message list**, composer, or context chip bar. Folders attach up to 20 markdown files into context.
+
+### Quick switcher (header bar)
+
+| Control | Action |
+|---------|--------|
+| Backend ▾ | Switch `cursor-sdk` / `cursor-agent` / `llm-gateway` (persists immediately) |
+| Model | Edit model id for SDK or LLM gateway (empty = account default for SDK) |
+| Mode ▾ | `agent` / `plan` when Cursor SDK backend is selected |
 
 ### Toolbar
 
@@ -92,7 +100,7 @@ Drop vault **notes** or **folders** onto the composer or context chip bar. Folde
 | 📎 Attach | Open fuzzy picker (notes + folders) |
 | ⚙ Settings | Open plugin settings tab |
 | + | New chat |
-| ⋯ More | Setup wizard, delete chat |
+| ⋯ More | Toggle active note, setup wizard, delete chat |
 
 ### @mentions
 

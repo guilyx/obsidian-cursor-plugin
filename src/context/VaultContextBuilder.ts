@@ -58,6 +58,10 @@ export class VaultContextBuilder {
     return selection ? { chars: selection.length } : null;
   }
 
+  getSelectionText(): string {
+    return this.getSelection();
+  }
+
   private async buildFilePart(path: string): Promise<string | null> {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) {

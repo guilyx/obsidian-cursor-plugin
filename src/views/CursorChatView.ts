@@ -1,7 +1,12 @@
-import { ItemView, MarkdownRenderer, Menu, TFile, TFolder, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, MarkdownRenderer, Menu, Notice, TFile, TFolder, WorkspaceLeaf, setIcon } from "obsidian";
 import type CursorChatPlugin from "../main";
 import { VIEW_TYPE } from "../constants";
+import type { ChatSession } from "../types/chat";
 import type { StoredMessage } from "../types/chat";
+import { vaultPathsFromDragEvent, attachmentFromAbstractFile } from "../context/vaultDragPath";
+import { BACKEND_LABELS } from "../backends/backendIds";
+import type { ChatBackendId } from "../types/chat";
+import type { CursorConversationMode } from "../types/cursor-api";
 import { BYOK_PROVIDER_PRESETS } from "../settings/byokProviders";
 import { VaultPathSuggestModal } from "./VaultPathSuggestModal";
 import { PrivacyNoticeModal } from "./PrivacyNoticeModal";
@@ -12,17 +17,31 @@ import {
   type ChatAttachment,
 } from "./chatAttachments";
 
+interface FailedTurn {
+  sessionId: string;
+  userText: string;
+  attachments: ChatAttachment[];
+  assistantMsgId: string;
+}
+
 export class CursorChatView extends ItemView {
   private messagesEl!: HTMLElement;
   private chipsEl!: HTMLElement;
   private composerWrapEl!: HTMLElement;
   private sessionSelectEl!: HTMLSelectElement;
+  private backendSelectEl!: HTMLSelectElement;
+  private modelInputEl!: HTMLInputElement;
+  private modeSelectEl!: HTMLSelectElement;
+  private quickSwitcherEl!: HTMLElement;
+  private modelFieldEl!: HTMLElement;
+  private modeFieldEl!: HTMLElement;
   private composerEl!: HTMLTextAreaElement;
   private sendBtn!: HTMLButtonElement;
   private stopBtn!: HTMLButtonElement;
   private statusEl!: HTMLElement;
   private abortController: AbortController | null = null;
   private attachments: ChatAttachment[] = [];
+  private lastFailedTurn: FailedTurn | null = null;
 
   constructor(leaf: WorkspaceLeaf, private readonly plugin: CursorChatPlugin) {
     super(leaf);
@@ -72,9 +91,13 @@ export class CursorChatView extends ItemView {
 
     this.createIconButton(headerActions, "more-horizontal", "More actions", (evt) => this.openHeaderMenu(evt));
 
+    this.quickSwitcherEl = root.createDiv({ cls: "cursor-chat-quick-switcher" });
+    this.buildQuickSwitcher(this.quickSwitcherEl);
+
     this.messagesEl = root.createDiv({ cls: "cursor-chat-messages" });
     this.messagesEl.setAttr("role", "log");
     this.messagesEl.setAttr("aria-live", "polite");
+    this.registerDropTarget(this.messagesEl);
 
     this.statusEl = root.createDiv({ cls: "cursor-chat-status" });
     this.updateStatus();
@@ -120,6 +143,94 @@ export class CursorChatView extends ItemView {
     this.stopGeneration();
   }
 
+  /** Insert text into the composer and focus it. */
+  insertComposerText(text: string): void {
+    this.composerEl.value = this.composerEl.value ? `${this.composerEl.value}\n\n${text}` : text;
+    this.composerEl.focus();
+    this.renderContextChips();
+  }
+
+  /** Set composer text and send (used by send-selection command). */
+  async sendComposerText(text: string): Promise<void> {
+    this.composerEl.value = text;
+    await this.sendMessage();
+  }
+
+  private buildQuickSwitcher(parent: HTMLElement): void {
+    const backendField = parent.createDiv({ cls: "cursor-chat-quick-field" });
+    backendField.createSpan({ text: "Backend", cls: "cursor-chat-quick-label" });
+    this.backendSelectEl = backendField.createEl("select", { cls: "cursor-chat-quick-select" });
+    for (const [id, label] of Object.entries(BACKEND_LABELS) as [ChatBackendId, string][]) {
+      this.backendSelectEl.createEl("option", { text: label, value: id });
+    }
+    this.backendSelectEl.addEventListener("change", () => void this.onBackendQuickChange());
+
+    this.modelFieldEl = parent.createDiv({ cls: "cursor-chat-quick-field" });
+    this.modelFieldEl.createSpan({ text: "Model", cls: "cursor-chat-quick-label" });
+    this.modelInputEl = this.modelFieldEl.createEl("input", {
+      cls: "cursor-chat-quick-input",
+      attr: { type: "text", placeholder: "account default" },
+    });
+    this.modelInputEl.addEventListener("change", () => void this.onModelQuickChange());
+
+    this.modeFieldEl = parent.createDiv({ cls: "cursor-chat-quick-field" });
+    this.modeFieldEl.createSpan({ text: "Mode", cls: "cursor-chat-quick-label" });
+    this.modeSelectEl = this.modeFieldEl.createEl("select", { cls: "cursor-chat-quick-select" });
+    for (const mode of ["agent", "plan"] as CursorConversationMode[]) {
+      this.modeSelectEl.createEl("option", { text: mode, value: mode });
+    }
+    this.modeSelectEl.addEventListener("change", () => void this.onModeQuickChange());
+
+    this.refreshQuickSwitcher();
+  }
+
+  private refreshQuickSwitcher(): void {
+    const { backend, cursor, byok } = this.plugin.settings;
+    this.backendSelectEl.value = backend;
+
+    const showModel = backend !== "cursor-agent";
+    const showMode = backend === "cursor-sdk";
+    this.modelFieldEl.style.display = showModel ? "" : "none";
+    this.modeFieldEl.style.display = showMode ? "" : "none";
+
+    if (backend === "cursor-sdk") {
+      this.modelInputEl.value = cursor.defaultModelId;
+      this.modelInputEl.placeholder = "account default";
+      this.modeSelectEl.value = cursor.defaultMode;
+    } else if (backend === "llm-gateway") {
+      this.modelInputEl.value = byok.model;
+      this.modelInputEl.placeholder = "model id";
+    }
+  }
+
+  private async onBackendQuickChange(): Promise<void> {
+    const next = this.backendSelectEl.value as ChatBackendId;
+    if (next === this.plugin.settings.backend) {
+      return;
+    }
+    this.plugin.settings.backend = next;
+    await this.plugin.saveSettings();
+    this.refreshQuickSwitcher();
+    this.updateStatus();
+  }
+
+  private async onModelQuickChange(): Promise<void> {
+    const value = this.modelInputEl.value.trim();
+    if (this.plugin.settings.backend === "cursor-sdk") {
+      this.plugin.settings.cursor.defaultModelId = value;
+    } else if (this.plugin.settings.backend === "llm-gateway") {
+      this.plugin.settings.byok.model = value;
+    }
+    await this.plugin.saveSettings();
+    this.updateStatus();
+  }
+
+  private async onModeQuickChange(): Promise<void> {
+    this.plugin.settings.cursor.defaultMode = this.modeSelectEl.value as CursorConversationMode;
+    await this.plugin.saveSettings();
+    this.updateStatus();
+  }
+
   private createIconButton(
     parent: HTMLElement,
     icon: string,
@@ -148,22 +259,23 @@ export class CursorChatView extends ItemView {
   }
 
   private handleDrop(evt: DragEvent): void {
-    const path = this.pathFromDragEvent(evt);
-    if (path) {
+    const paths = vaultPathsFromDragEvent(this.app, evt);
+    if (paths.length === 0) {
+      return;
+    }
+    for (const path of paths) {
       this.attachFromVaultPath(path);
     }
   }
 
-  private pathFromDragEvent(evt: DragEvent): string | null {
-    const dt = evt.dataTransfer;
-    if (!dt) {
-      return null;
+  private attachFromVaultPath(path: string): void {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    const att = file ? attachmentFromAbstractFile(file) : null;
+    if (att) {
+      this.addAttachment(att);
+      return;
     }
-    const plain = dt.getData("text/plain")?.trim();
-    if (plain && this.app.vault.getAbstractFileByPath(plain)) {
-      return plain;
-    }
-    return plain || null;
+    new Notice(`Could not attach: ${path}`);
   }
 
   private openHeaderMenu(evt: MouseEvent): void {
@@ -172,6 +284,17 @@ export class CursorChatView extends ItemView {
 
     menu.addItem((item) => {
       item.setTitle("Attach note or folder").setIcon("paperclip").onClick(() => this.openAttachPicker());
+    });
+    menu.addItem((item) => {
+      item
+        .setTitle("Include active note")
+        .setIcon("file-text")
+        .setChecked(this.plugin.settings.includeActiveNote)
+        .onClick(async () => {
+          this.plugin.settings.includeActiveNote = !this.plugin.settings.includeActiveNote;
+          await this.plugin.saveSettings();
+          this.renderContextChips();
+        });
     });
     menu.addItem((item) => {
       item.setTitle("Settings").setIcon("settings").onClick(() => this.plugin.openSettings());
@@ -230,26 +353,17 @@ export class CursorChatView extends ItemView {
 
   private openAttachPicker(): void {
     new VaultPathSuggestModal(this.app, (item) => {
+      const att = attachmentFromAbstractFile(item);
+      if (!att) {
+        return;
+      }
+      this.addAttachment(att);
       if (item instanceof TFile) {
-        this.attachFromVaultPath(item.path);
         const mention = `[[${item.basename}]] `;
         this.composerEl.value = `${this.composerEl.value}${mention}`;
-      } else {
-        this.attachFromVaultPath(item.path);
       }
       this.composerEl.focus();
     }).open();
-  }
-
-  private attachFromVaultPath(path: string): void {
-    const file = this.app.vault.getAbstractFileByPath(path);
-    if (file instanceof TFile) {
-      this.addAttachment({ kind: "file", path: file.path, label: file.basename });
-      return;
-    }
-    if (file instanceof TFolder) {
-      this.addAttachment({ kind: "folder", path: file.path, label: file.name });
-    }
   }
 
   private addAttachment(att: ChatAttachment): void {
@@ -350,17 +464,75 @@ export class CursorChatView extends ItemView {
   }
 
   private appendMessageBubble(msg: StoredMessage): HTMLElement {
+    const isError = msg.role === "assistant" && msg.content.startsWith("Error:");
     const bubble = this.messagesEl.createDiv({
-      cls: `cursor-chat-bubble cursor-chat-bubble--${msg.role}`,
+      cls: `cursor-chat-bubble cursor-chat-bubble--${msg.role}${isError ? " cursor-chat-bubble--error" : ""}`,
     });
     bubble.createDiv({ cls: "cursor-chat-bubble-label", text: msg.role === "user" ? "You" : "Assistant" });
     const body = bubble.createDiv({ cls: "cursor-chat-bubble-body" });
     if (msg.role === "assistant") {
-      void MarkdownRenderer.render(this.app, msg.content, body, "", this);
+      if (isError) {
+        body.createSpan({ text: msg.content, cls: "cursor-chat-error-text" });
+        const retryBtn = bubble.createEl("button", {
+          text: "Retry",
+          cls: "cursor-chat-retry-btn mod-cta",
+        });
+        retryBtn.onclick = () => void this.retryTurn(msg.id);
+      } else {
+        void MarkdownRenderer.render(this.app, msg.content, body, "", this);
+      }
     } else {
       body.setText(msg.content);
     }
     return body;
+  }
+
+  private getRetryContext(
+    session: ChatSession,
+    assistantMsgId: string,
+  ): { userText: string; attachments: ChatAttachment[] } | null {
+    const assistantIdx = session.messages.findIndex((m) => m.id === assistantMsgId);
+    if (assistantIdx <= 0) {
+      return null;
+    }
+    const userMsg = session.messages[assistantIdx - 1];
+    if (userMsg.role !== "user") {
+      return null;
+    }
+    if (this.lastFailedTurn?.assistantMsgId === assistantMsgId) {
+      return {
+        userText: this.lastFailedTurn.userText,
+        attachments: [...this.lastFailedTurn.attachments],
+      };
+    }
+    return { userText: userMsg.content, attachments: [] };
+  }
+
+  private async retryTurn(assistantMsgId: string): Promise<void> {
+    if (this.abortController) {
+      return;
+    }
+    const session = this.plugin.sessions.getActive();
+    if (!session) {
+      return;
+    }
+    const ctx = this.getRetryContext(session, assistantMsgId);
+    if (!ctx) {
+      return;
+    }
+
+    const assistantIdx = session.messages.findIndex((m) => m.id === assistantMsgId);
+    if (assistantIdx < 0) {
+      return;
+    }
+    session.messages.splice(assistantIdx, 1);
+    if (this.lastFailedTurn?.assistantMsgId === assistantMsgId) {
+      this.lastFailedTurn = null;
+    }
+    await this.plugin.persistSessions();
+    this.renderMessages();
+
+    await this.runAssistantTurn(session, ctx.userText, ctx.attachments);
   }
 
   private appendToolCard(
@@ -420,6 +592,14 @@ export class CursorChatView extends ItemView {
     this.refreshSessionSelect();
     this.renderMessages();
 
+    await this.runAssistantTurn(session, text, attachments);
+  }
+
+  private async runAssistantTurn(
+    session: ChatSession,
+    userText: string,
+    attachments: ChatAttachment[],
+  ): Promise<void> {
     const assistantMsg: StoredMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
@@ -438,13 +618,14 @@ export class CursorChatView extends ItemView {
     this.setStreaming(true);
 
     const contextPrefix = await this.plugin.contextBuilder.build(attachments);
+    let hadError = false;
 
     try {
       const backend = this.plugin.router.getBackend();
       let full = "";
       for await (const event of backend.send({
         session,
-        userText: text,
+        userText,
         contextPrefix,
         signal: this.abortController.signal,
       })) {
@@ -466,18 +647,37 @@ export class CursorChatView extends ItemView {
         } else if (event.type === "assistant-done") {
           full = event.text;
         } else if (event.type === "error") {
-          assistantBody.setText(`Error: ${event.message}`);
+          hadError = true;
+          this.showAssistantError(assistantBubble, assistantBody, event.message, assistantMsg.id);
           full = `Error: ${event.message}`;
         }
       }
       this.plugin.sessions.updateAssistantMessage(session.id, assistantMsg.id, full);
       await this.plugin.persistSessions();
+      if (hadError || full.startsWith("Error:")) {
+        this.lastFailedTurn = {
+          sessionId: session.id,
+          userText,
+          attachments: [...attachments],
+          assistantMsgId: assistantMsg.id,
+        };
+        this.renderMessages();
+      } else if (this.lastFailedTurn?.assistantMsgId === assistantMsg.id) {
+        this.lastFailedTurn = null;
+      }
     } catch (err: unknown) {
       if (!(err instanceof DOMException && err.name === "AbortError")) {
         const msg = err instanceof Error ? err.message : String(err);
-        assistantBody.setText(`Error: ${msg}`);
+        this.showAssistantError(assistantBubble, assistantBody, msg, assistantMsg.id);
         this.plugin.sessions.updateAssistantMessage(session.id, assistantMsg.id, `Error: ${msg}`);
         await this.plugin.persistSessions();
+        this.lastFailedTurn = {
+          sessionId: session.id,
+          userText,
+          attachments: [...attachments],
+          assistantMsgId: assistantMsg.id,
+        };
+        this.renderMessages();
       }
     } finally {
       this.abortController = null;
@@ -485,5 +685,21 @@ export class CursorChatView extends ItemView {
       this.updateStatus();
       this.renderContextChips();
     }
+  }
+
+  private showAssistantError(
+    bubble: HTMLElement,
+    body: HTMLElement,
+    message: string,
+    assistantMsgId: string,
+  ): void {
+    bubble.addClass("cursor-chat-bubble--error");
+    body.empty();
+    body.createSpan({ text: `Error: ${message}`, cls: "cursor-chat-error-text" });
+    const retryBtn = bubble.createEl("button", {
+      text: "Retry",
+      cls: "cursor-chat-retry-btn mod-cta",
+    });
+    retryBtn.onclick = () => void this.retryTurn(assistantMsgId);
   }
 }
