@@ -8,12 +8,16 @@ Uses your **Cursor API key** (`crsr_…`) with the **Cursor TypeScript SDK** —
 
 | Setting | Runtime | How |
 |---------|---------|-----|
-| **`sdkRuntime: local`** (default) | `@cursor/sdk` `Agent.create({ local: { cwd } })` | Node bridge on `127.0.0.1:8765` |
+| **`sdkRuntime: local`** (default) | `@cursor/sdk` `Agent.create({ local: { cwd } })` | Auto-started Node server on `127.0.0.1:8765` |
 | **`sdkRuntime: cloud`** | Cloud Agents REST API | `POST /v1/agents` on `api.cursor.com` |
 
 See [Usage and billing](https://cursor.com/docs/sdk/typescript#usage-and-billing) — SDK runs use token-based pricing (SDK tag in dashboard). **Cloud Agents REST** additionally requires usage-based pricing headroom on some accounts.
 
-### Start the local bridge
+### Local SDK (default — auto-started)
+
+The plugin **starts the local SDK server automatically** on first chat or **Test connection**. No manual terminal step required.
+
+Advanced / manual run (optional):
 
 ```bash
 cd bridge
@@ -22,7 +26,7 @@ export CURSOR_API_KEY=crsr_…
 npm run start
 ```
 
-Local agent creation (what the bridge runs):
+Local agent creation (what the server runs):
 
 ```typescript
 const agent = await Agent.create({
@@ -35,30 +39,30 @@ const agent = await Agent.create({
 });
 ```
 
-Plugin settings: **SDK runtime → Local**, **Bridge URL** `http://127.0.0.1:8765`.
+Plugin settings: **SDK runtime → Local**. Default URL `http://127.0.0.1:8765` is fine for most users.
 
 ## Why not `@cursor/sdk` inside the plugin?
 
-Obsidian plugins cannot bundle Node 22 + `@cursor/sdk` native binaries. The bridge runs SDK locally; the plugin talks HTTP to the bridge (same SSE event names as Cloud Agents).
+Obsidian plugins cannot bundle Node 22 + `@cursor/sdk` native binaries. A Node sidecar runs the SDK locally; the plugin talks HTTP to it (same SSE event names as Cloud Agents).
 
 ## Settings
 
 | Field | Default | Description |
 |-------|---------|-------------|
 | `cursor.apiKey` | — | `crsr_…` |
-| `cursor.sdkRuntime` | `local` | `local` (bridge) or `cloud` (REST) |
-| `cursor.bridgeUrl` | `http://127.0.0.1:8765` | Local bridge base URL |
+| `cursor.sdkRuntime` | `local` | `local` (auto-started) or `cloud` (REST) |
+| `cursor.bridgeUrl` | `http://127.0.0.1:8765` | Advanced — local server URL |
 | `cursor.bridgeToken` | — | Optional `BRIDGE_TOKEN` |
 | `cursor.defaultModelId` | — | e.g. `composer-2.5` |
 
 ## Obsidian HTTP transport
 
-Inside the plugin, calls to `api.cursor.com` use Obsidian `requestUrl` (CORS-safe). The local bridge is reached at `localhost` and streams SSE normally.
+Inside the plugin, calls to `api.cursor.com` use Obsidian `requestUrl` (CORS-safe). The local server is reached at `localhost` and streams SSE normally.
 
 ## vs `cursor-agent` (CLI)
 
 | | `cursor-sdk` local | `cursor-agent` |
 |---|-------------------|----------------|
-| Runtime | `@cursor/sdk` in Node bridge | `agent` subprocess |
+| Runtime | `@cursor/sdk` in Node sidecar | `agent` subprocess |
 | Vault files | Native `read_file` on `cwd` | CLI tools on vault |
-| Setup | Run bridge + plugin | Install CLI only |
+| Setup | Plugin auto-starts server | Install CLI only |

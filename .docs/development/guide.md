@@ -205,8 +205,8 @@ Plugin stores key in vault plugin data — use a **dedicated dev key** with mini
 
 1. Bump `manifest.json` + `versions.json`
 2. `npm run build`
-3. Tag release; attach `main.js`, `manifest.json`, `styles.css`
-4. Submit to Obsidian Community Plugin store (separate process)
+3. Tag release; attach `main.js`, `manifest.json`, `styles.css`, `LICENSE`, and `bridge/` (for local SDK)
+4. Submit to Obsidian Community Plugin store (separate process) — requires public repo with `README.md` and `LICENSE` (MIT)
 
 ## Related reading
 

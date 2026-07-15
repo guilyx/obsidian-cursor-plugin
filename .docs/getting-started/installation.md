@@ -31,13 +31,16 @@ The plugin folder name must match `id` in `manifest.json` (`obsidian-cursor-chat
 ln -s "$(pwd)" "/path/to/your-vault/.obsidian/plugins/obsidian-cursor-chat"
 ```
 
-**Copy release files only:**
+**Copy release files:**
 
 ```bash
 DEST="/path/to/your-vault/.obsidian/plugins/obsidian-cursor-chat"
 mkdir -p "$DEST"
-cp main.js manifest.json styles.css "$DEST/"
+cp main.js manifest.json styles.css LICENSE "$DEST/"
+cp -r bridge "$DEST/"
 ```
+
+For **local SDK** mode, the `bridge/` folder must be present (the plugin auto-starts `bridge/sdk-server.mjs` and runs `npm install` there on first use if needed).
 
 ### 3. Enable in Obsidian
 
@@ -55,6 +58,8 @@ Published plugins are installed from **Settings → Community plugins → Browse
 - `main.js`
 - `manifest.json`
 - `styles.css` (optional)
+- `LICENSE`
+- `bridge/` (required for local SDK backend)
 
 Submission checklist:
 

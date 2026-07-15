@@ -2,6 +2,8 @@
   "name": "obsidian-cursor-bridge",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "Erwin Lejeune",
   "description": "Local @cursor/sdk bridge for obsidian-cursor-plugin",
   "type": "module",
   "scripts": {
