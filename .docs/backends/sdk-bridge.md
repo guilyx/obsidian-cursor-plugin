@@ -165,8 +165,8 @@ Use `onDelta` / `on_delta` in SDK only if bridge needs finer token granularity.
 
 | Topic | Guidance |
 |-------|----------|
-| **Install** | Ship bridge as optional `npm`/`uv` package; plugin settings → "Start bridge" spawns child process (desktop only) |
-| **Updates** | Pin `@cursor/sdk` / `cursor-sdk` version in bridge; plugin checks `/health` version |
+| **Install** | Shipped in plugin `bridge/` folder; plugin **auto-starts** `sdk-server.mjs` on first use (desktop only) |
+| **Updates** | Pin `@cursor/sdk` version in bridge; plugin checks `/health` version |
 | **Security** | Bind bridge to `127.0.0.1` only; random bridge token; never expose on LAN |
 | **Lifecycle** | Kill bridge when Obsidian exits; `agent.close()` on thread delete |
 | **Headless approval** | Local SDK auto-approves tool calls — use `sandboxOptions.enabled` or hooks in `.cursor/hooks.json` |

@@ -11,7 +11,8 @@ Track implementation across focused pull requests against **`main`**.
 | **#1** | `cursor/plugin-scaffold-byok-db56` | Scaffold + BYOK MVP | **Done** (v0.1.0) |
 | **#2** | `cursor/cursor-rest-backend-db56` | Cursor REST (`crsr_…`) + SSE | **Done** (v0.2.0) |
 | **#3** | `cursor/multi-session-ux-db56` | Sessions list, `@mentions`, polish | **Done** (v0.3.0) |
-| **#4** | `cursor/sdk-bridge-stub-db56` | Optional local SDK bridge package | **Done** (v0.4.0) |
+| **#4** | `cursor/sdk-bridge-stub-db56` | Local SDK bridge package | **Done** (v0.4.0) |
+| **#8–#12** | various | v0.5 three-backend model, CLI, auto-start SDK, CI fixes | **Done** (v0.5.0) |
 
 ## PR #1 — Scaffold + BYOK (this PR)
 
