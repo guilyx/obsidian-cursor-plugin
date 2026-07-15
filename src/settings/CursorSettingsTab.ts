@@ -165,6 +165,7 @@ export class CursorSettingsTab extends PluginSettingTab {
           .setValue(cursor.sdkRuntime)
           .onChange(async (value) => {
             this.plugin.settings.cursor.sdkRuntime = value as typeof cursor.sdkRuntime;
+            this.plugin.sessions.clearCursorAgentIdsForRuntime(this.plugin.settings.cursor.sdkRuntime);
             await this.plugin.saveSettings();
             this.display();
           }),
