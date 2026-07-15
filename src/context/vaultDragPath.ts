@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import { TAbstractFile, TFile, TFolder } from "obsidian";
+import { FileSystemAdapter, TAbstractFile, TFile, TFolder } from "obsidian";
 import type { ChatAttachment } from "../views/chatAttachments";
 import { parseWikiLinkText, pathsFromHtml } from "./vaultDragPathParse";
 
@@ -66,7 +66,8 @@ function resolveObsidianUri(app: App, uri: string): string | null {
     const pathParam = url.searchParams.get("path");
     if (pathParam) {
       const absolute = decodeURIComponent(pathParam);
-      const base = app.vault.adapter.getBasePath?.();
+      const adapter = app.vault.adapter;
+      const base = adapter instanceof FileSystemAdapter ? adapter.getBasePath() : null;
       if (base && absolute.startsWith(base)) {
         const relative = absolute.slice(base.length).replace(/^\/+/, "");
         return abstractPath(app, relative);
