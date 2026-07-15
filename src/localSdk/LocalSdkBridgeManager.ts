@@ -5,6 +5,7 @@ import { BridgeApiClient } from "../api/BridgeApiClient";
 import type { HttpClient } from "../api/httpClient";
 import type { CursorApiSettings } from "../settings/CursorSettings";
 import { parseBridgeUrl } from "./bridgeUrl";
+import { ensureBridgeInstalled, bridgeServerScript } from "./bootstrapBridge";
 import { resolveNodeExecutable } from "./resolveNode";
 
 const HEALTH_POLL_MS = 200;
@@ -69,6 +70,7 @@ export class LocalSdkBridgeManager {
 
   constructor(
     private readonly getPluginDir: () => string,
+    private readonly getPluginVersion: () => string,
     private readonly getSettings: () => CursorApiSettings,
     private readonly http?: HttpClient,
     private readonly spawnFn: SpawnFn = spawn as unknown as SpawnFn,
@@ -122,13 +124,19 @@ export class LocalSdkBridgeManager {
   private async startBridge(): Promise<void> {
     const settings = this.getSettings();
     const pluginDir = this.getPluginDir();
+
+    await ensureBridgeInstalled({
+      pluginDir,
+      version: this.getPluginVersion(),
+      http: this.http,
+      spawnFn: this.spawnFn,
+    });
+
     const bridgeDir = path.join(pluginDir, "bridge");
-    const serverScript = path.join(bridgeDir, "sdk-server.mjs");
+    const serverScript = bridgeServerScript(pluginDir);
 
     if (!existsSync(serverScript)) {
-      throw new Error(
-        "Local SDK files are missing from the plugin folder. Try reinstalling Cursor Chat.",
-      );
+      throw new Error(`Local SDK server script missing after install: ${serverScript}`);
     }
 
     await this.ensureDependencies(bridgeDir);

@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Cloud SDK `bc-<uuid>` validation error** — ignore or clear `cursorAgentId` when it belongs to the other runtime (e.g. local `agent-…` id reused after switching to cloud REST)
+- **Missing local SDK bridge after reinstall** — Community Plugin installs only ship `main.js`; plugin now downloads `bridge/` from GitHub on first use and uses the vault plugin folder path
+- **Cloud SDK `bc-<uuid>` validation error** — ignore or clear `cursorAgentId` when it belongs to the other runtime
 - **Bridge integration test** — removed TypeScript `!` syntax from `.mjs` file (CI parse error)
 - Integration tests skip (not fail) when `CURSOR_API_KEY` is missing, invalid, or billing blocks cloud agents
 - API error messages parse nested `{ code, message }` objects
