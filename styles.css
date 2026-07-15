@@ -60,6 +60,38 @@
   font-weight: 600;
 }
 
+.cursor-chat-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+}
+
+.cursor-chat-icon-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.cursor-chat-composer-wrap.cursor-chat-drop-target,
+.cursor-chat-chips.cursor-chat-drop-target {
+  outline: 2px dashed var(--interactive-accent);
+  outline-offset: -2px;
+  background: var(--background-modifier-hover);
+}
+
+.cursor-chat-status--action {
+  cursor: pointer;
+  color: var(--interactive-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cursor-chat-status--action:hover {
+  color: var(--text-accent-hover);
+}
+
 .cursor-chat-messages {
   flex: 1;
   overflow-y: auto;

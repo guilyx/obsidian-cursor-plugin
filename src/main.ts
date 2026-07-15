@@ -79,6 +79,14 @@ export default class CursorChatPlugin extends Plugin {
     new SetupWizardModal(this.app, this).open();
   }
 
+  openSettings(): void {
+    const app = this.app as typeof this.app & {
+      setting: { open(): void; openTabById(id: string): void };
+    };
+    app.setting.open();
+    app.setting.openTabById(this.manifest.id);
+  }
+
   rebuildRouter(): void {
     this.localSdkBridge?.stop();
 
