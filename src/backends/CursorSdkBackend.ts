@@ -2,7 +2,7 @@ import type { ChatBackend } from "./ChatBackend";
 import type { SendMessageInput, StreamEvent } from "../types/chat";
 import type { CursorChatSettings } from "../settings/CursorSettings";
 import { CursorApiClient } from "../api/CursorApiClient";
-import { CursorApiError } from "../api/errors";
+import { CursorApiError, isCursorBillingLimitError } from "../api/errors";
 import { readCursorSseStream } from "../api/SseReader";
 import type { HttpClient } from "../api/httpClient";
 
@@ -214,6 +214,9 @@ function shouldPollInstead(err: unknown): boolean {
 
 function formatError(err: unknown): string {
   if (err instanceof CursorApiError) {
+    if (isCursorBillingLimitError(err)) {
+      return "Cursor Cloud Agents require usage-based pricing with spend headroom. Enable it in Cursor Dashboard → Settings.";
+    }
     return err.message;
   }
   return err instanceof Error ? err.message : String(err);

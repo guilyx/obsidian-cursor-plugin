@@ -2,15 +2,19 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { CursorApiClient } from "../src/api/CursorApiClient.ts";
 import { CursorSdkBackend } from "../src/backends/CursorSdkBackend.ts";
-import { CursorApiError } from "../src/api/errors.ts";
+import { CursorApiError, isCursorBillingLimitError } from "../src/api/errors.ts";
 import { collectStreamEvents } from "./helpers/collectEvents.ts";
 import { testSession, testSettings } from "./helpers/settings.ts";
 
 const apiKey = process.env.CURSOR_API_KEY?.trim();
 const live = apiKey ? describe : describe.skip;
 
-function formatEventError(err: { type: "error"; message: string }): string {
-  return err.message;
+function skipIfBillingLimited(t: { skip: (msg?: string) => void }, err: unknown): boolean {
+  if (isCursorBillingLimitError(err)) {
+    t.skip("Cursor account needs usage-based pricing / spend headroom for Cloud Agents");
+    return true;
+  }
+  return false;
 }
 
 live("Cursor API integration", () => {
@@ -25,7 +29,7 @@ live("Cursor API integration", () => {
     assert.ok(models[0]?.id, "expected model id");
   });
 
-  it("POST /v1/agents creates a no-repo agent", async () => {
+  it("POST /v1/agents creates a no-repo agent", async (t) => {
     const client = new CursorApiClient(apiKey!);
     try {
       const res = await client.createAgent({
@@ -36,6 +40,9 @@ live("Cursor API integration", () => {
       assert.match(res.agent.id, /^bc-/);
       assert.match(res.run.id, /^run-/);
     } catch (err: unknown) {
+      if (skipIfBillingLimited(t, err)) {
+        return;
+      }
       if (err instanceof CursorApiError) {
         assert.fail(`createAgent failed (${err.status}): ${err.message}`);
       }
@@ -46,7 +53,7 @@ live("Cursor API integration", () => {
   it(
     "SDK backend completes a short no-repo agent run",
     { timeout: 180_000 },
-    async () => {
+    async (t) => {
       const backend = new CursorSdkBackend(
         testSettings({
           cursor: { apiKey: apiKey!, defaultMode: "plan", defaultModelId: "" },
@@ -64,7 +71,14 @@ live("Cursor API integration", () => {
       const done = events.find((e) => e.type === "assistant-done");
       const err = events.find((e) => e.type === "error");
       if (err?.type === "error") {
-        assert.fail(`SDK run failed: ${formatEventError(err)}`);
+        if (
+          err.message.includes("usage-based pricing") ||
+          err.message.includes("usage_limit_exceeded")
+        ) {
+          t.skip("Cursor account needs usage-based pricing / spend headroom for Cloud Agents");
+          return;
+        }
+        assert.fail(`SDK run failed: ${err.message}`);
       }
       assert.ok(done?.text?.toLowerCase().includes("pong"), `expected pong in: ${done?.text}`);
     },

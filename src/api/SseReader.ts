@@ -1,4 +1,5 @@
 import { createParser, type EventSourceMessage } from "eventsource-parser";
+import { formatApiErrorField } from "./errors";
 
 /** Parse one OpenAI SSE data line; ponytail: minimal helper for self-check script. */
 export function parseSseDataLine(data: string): { text?: string; done?: boolean; error?: string } {
@@ -61,7 +62,7 @@ export function parseCursorSseEvent(eventType: string, data: string): CursorSseC
       case "error":
         return {
           kind: "error",
-          message: String(json.message ?? json.code ?? "Stream error"),
+          message: formatApiErrorField(json.message) ?? formatApiErrorField(json.code) ?? "Stream error",
         };
       case "status":
         return { kind: "status", status: String(json.status ?? "") };

@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **CI workflow** — removed invalid `secrets` in `if` condition (GitHub rejects this and skips all jobs)
+- **Integration tests** — skip (not fail) when Cursor account lacks usage-based pricing for Cloud Agents (`usage_limit_exceeded`)
+- **API error messages** — parse nested `{ code, message }` objects instead of `[object Object]`
+- **CI workflow** — removed invalid `secrets` in `if` condition (was failing workflow validation)
 - **SDK empty replies** — fall back to polling when SSE stream ends without assistant text, on `410`, or on network errors
 - **Chat text selection** — message bubbles are selectable/copyable in the chat sidebar
 
