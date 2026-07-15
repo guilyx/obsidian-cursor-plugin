@@ -10,7 +10,7 @@ Track implementation across focused pull requests against **`main`**.
 |----|--------|-------|--------|
 | **#1** | `cursor/plugin-scaffold-byok-db56` | Scaffold + BYOK MVP | **Done** (v0.1.0) |
 | **#2** | `cursor/cursor-rest-backend-db56` | Cursor REST (`crsr_…`) + SSE | **Done** (v0.2.0) |
-| **#3** | `cursor/multi-session-ux-db56` | Sessions list, `@mentions`, polish | Planned |
+| **#3** | `cursor/multi-session-ux-db56` | Sessions list, `@mentions`, polish | **Done** (v0.3.0) |
 | **#4** | `cursor/sdk-bridge-stub-db56` | Optional local SDK bridge package | Planned |
 
 ## PR #1 — Scaffold + BYOK (this PR)
@@ -45,7 +45,7 @@ See [Cursor REST](../backends/cursor-rest.md)
 
 ## PR #3 — Shared UX
 
-**Branch:** `cursor/multi-session-ux-db56`
+**Branch:** `cursor/multi-session-ux-db56` (merged in v0.3.0)
 
 - Session switcher in header
 - `@note` fuzzy mentions in composer

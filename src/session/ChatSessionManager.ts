@@ -20,6 +20,25 @@ export class ChatSessionManager {
     return this.sessions.find((s) => s.id === this.activeId) ?? null;
   }
 
+  listSessions(): ChatSession[] {
+    return [...this.sessions];
+  }
+
+  setActive(sessionId: string): boolean {
+    if (!this.sessions.some((s) => s.id === sessionId)) {
+      return false;
+    }
+    this.activeId = sessionId;
+    return true;
+  }
+
+  deleteSession(sessionId: string): void {
+    this.sessions = this.sessions.filter((s) => s.id !== sessionId);
+    if (this.activeId === sessionId) {
+      this.activeId = this.sessions[0]?.id ?? null;
+    }
+  }
+
   createSession(backend: ChatBackendId = "openai-compatible"): ChatSession {
     const now = new Date().toISOString();
     const session: ChatSession = {

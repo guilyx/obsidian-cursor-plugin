@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-14
+
+### Added
+
+- **Session switcher** in chat header (dropdown + new chat)
+- **@mention** fuzzy file picker — attach notes as context chips
+- **Context chips** for active note, selection, and @attachments
+- **Tool-call cards** for Cursor REST SSE `tool_call` events
+- **Privacy first-run modal** with settings shortcut
+- Streaming cursor animation on assistant bubble
+
+### Changed
+
+- `VaultContextBuilder` accepts attached note paths from @mentions
+- Thinking blocks render as collapsible `<details>` when enabled
+
 ## [0.2.0] - 2026-07-14
 
 ### Added
