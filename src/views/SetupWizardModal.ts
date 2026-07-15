@@ -40,7 +40,7 @@ export class SetupWizardModal extends Modal {
     const options: Array<{ id: ChatBackendId; desc: string }> = [
       {
         id: "cursor-sdk",
-        desc: "Call Cursor agents via @cursor/sdk — local bridge (default) or cloud REST. Same crsr_… key.",
+        desc: "Cursor agents on your vault (local, auto-started) or in the cloud (REST). Uses your crsr_… key.",
       },
       {
         id: "cursor-agent",

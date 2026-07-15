@@ -13,14 +13,18 @@ import { CursorSdkBackend } from "./backends/CursorSdkBackend";
 import { CursorAgentCliBackend } from "./backends/CursorAgentCliBackend";
 import { BackendRouter } from "./backends/BackendRouter";
 import { createObsidianHttpClient } from "./api/httpClient";
+import { LocalSdkBridgeManager } from "./localSdk/LocalSdkBridgeManager";
 
 const MESSAGE_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+
+declare const __dirname: string;
 
 export default class CursorChatPlugin extends Plugin {
   settings: CursorChatSettings = DEFAULT_SETTINGS;
   sessions = new ChatSessionManager();
   contextBuilder!: VaultContextBuilder;
   router!: BackendRouter;
+  private localSdkBridge!: import("./localSdk/LocalSdkBridgeManager").LocalSdkBridgeManager;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -63,7 +67,12 @@ export default class CursorChatPlugin extends Plugin {
   }
 
   onunload(): void {
+    this.localSdkBridge?.stop();
     this.app.workspace.detachLeavesOfType(VIEW_TYPE);
+  }
+
+  getPluginDir(): string {
+    return __dirname;
   }
 
   openSetupWizard(): void {
@@ -71,6 +80,8 @@ export default class CursorChatPlugin extends Plugin {
   }
 
   rebuildRouter(): void {
+    this.localSdkBridge?.stop();
+
     const getVaultPath = (): string | null => {
       const adapter = this.app.vault.adapter;
       if (adapter instanceof FileSystemAdapter) {
@@ -81,7 +92,17 @@ export default class CursorChatPlugin extends Plugin {
 
     const llmGateway = new LlmGatewayBackend(this.settings);
     const cursorHttp = createObsidianHttpClient(requestUrl);
-    const cursorSdk = new CursorSdkBackend(this.settings, getVaultPath, cursorHttp);
+    this.localSdkBridge = new LocalSdkBridgeManager(
+      () => this.getPluginDir(),
+      () => this.settings.cursor,
+      cursorHttp,
+    );
+    const cursorSdk = new CursorSdkBackend(
+      this.settings,
+      getVaultPath,
+      cursorHttp,
+      this.localSdkBridge,
+    );
     const cursorAgent = new CursorAgentCliBackend(this.settings, getVaultPath);
     this.router = new BackendRouter(this.settings, cursorSdk, cursorAgent, llmGateway);
     this.contextBuilder = new VaultContextBuilder(this.app, this.settings);

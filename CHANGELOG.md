@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Auto-start local SDK** — plugin spawns `bridge/sdk-server.mjs` on first use (no manual `cd bridge && npm run start`)
 - **SDK local runtime (default)** — `@cursor/sdk` via `bridge/sdk-server.mjs` (`Agent.create({ local: { cwd } })`)
 - Settings: `cursor.sdkRuntime` (`local` | `cloud`), `bridgeUrl`, `bridgeToken`
 - Local SDK integration tests (`bridge/scripts/sdk-local-integration.mjs`)
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Local SDK settings copy — removed manual bridge start instructions; URL/token marked advanced
 - Local SDK bridge uses canonical `Agent.create({ model: { id, params: [{ fast }] }, local: { cwd } })`
 - Default `cursor.sdkRuntime`: `local`
 - Cloud Agents billing errors suggest switching to local SDK or CLI

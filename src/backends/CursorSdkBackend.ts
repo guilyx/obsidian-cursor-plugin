@@ -7,6 +7,7 @@ import { CursorApiClient } from "../api/CursorApiClient";
 import { CursorApiError, isCursorBillingLimitError } from "../api/errors";
 import { readCursorSseStream } from "../api/SseReader";
 import type { HttpClient } from "../api/httpClient";
+import type { LocalSdkBridgeManager } from "../localSdk/LocalSdkBridgeManager";
 
 const POLL_MS = 2000;
 const TERMINAL_ERROR_STATUSES = new Set(["ERROR", "CANCELLED", "EXPIRED"]);
@@ -41,6 +42,7 @@ export class CursorSdkBackend implements ChatBackend {
     private readonly settings: CursorChatSettings,
     private readonly getVaultPath: () => string | null,
     private readonly http?: HttpClient,
+    private readonly localSdk?: LocalSdkBridgeManager,
   ) {}
 
   private isLocal(): boolean {
@@ -72,15 +74,22 @@ export class CursorSdkBackend implements ChatBackend {
     return this.cloudClient();
   }
 
+  private async ensureLocalSdk(): Promise<void> {
+    if (this.localSdk) {
+      await this.localSdk.ensureRunning();
+    }
+  }
+
   async validate(): Promise<void> {
     if (this.isLocal()) {
       const vaultPath = this.getVaultPath();
       if (!vaultPath) {
         throw new Error("Local SDK requires a local folder vault.");
       }
+      await this.ensureLocalSdk();
       const health = await this.bridgeClient().health();
       if (!health.ok) {
-        throw new Error("SDK bridge is not healthy. Start it: cd bridge && npm run start:sdk");
+        throw new Error("Local SDK server is not healthy.");
       }
       return;
     }
@@ -107,6 +116,7 @@ export class CursorSdkBackend implements ChatBackend {
           yield { type: "error", message: "Local SDK requires a local folder vault." };
           return;
         }
+        await this.ensureLocalSdk();
         const bridge = this.bridgeClient();
         if (!agentId) {
           const created = await bridge.createAgent({
@@ -167,7 +177,7 @@ export class CursorSdkBackend implements ChatBackend {
         yield {
           type: "error",
           message: this.isLocal()
-            ? "Local SDK agent finished without a reply. Is the bridge running?"
+            ? "Local SDK agent finished without a reply."
             : "Cursor agent finished without a reply. Check your API key and model settings.",
         };
       }
