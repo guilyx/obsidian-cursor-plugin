@@ -44,7 +44,7 @@ export class SetupWizardModal extends Modal {
       },
       {
         id: "cursor-agent",
-        desc: "Run the Cursor Agent CLI on this machine (agent). Uses your Cursor login — no API key in the plugin.",
+        desc: "Run the Cursor Agent CLI locally. Uses your Cursor API key or machine login.",
       },
       {
         id: "llm-gateway",
@@ -98,8 +98,18 @@ export class SetupWizardModal extends Modal {
         );
     } else if (this.chosen === "cursor-agent") {
       contentEl.createEl("p", {
-        text: "Install the CLI: curl https://cursor.com/install -fsS | bash — then run agent login once in a terminal.",
+        text: "Install: curl https://cursor.com/install -fsS | bash. Use your Cursor API key (recommended) or run agent login.",
       });
+      new Setting(contentEl)
+        .setName("Cursor API key")
+        .addText((text) =>
+          text
+            .setPlaceholder("crsr_…")
+            .setValue(this.plugin.settings.cursor.apiKey)
+            .onChange((value) => {
+              this.plugin.settings.cursor.apiKey = value;
+            }),
+        );
       new Setting(contentEl)
         .setName("Agent command")
         .setDesc("Usually agent (or cursor-agent).")

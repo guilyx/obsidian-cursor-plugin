@@ -200,7 +200,8 @@ export class CursorChatView extends ItemView {
     const { backend, byok, cursor } = this.plugin.settings;
 
     if (backend === "cursor-agent") {
-      this.statusEl.setText(`Cursor Agent · ${this.plugin.settings.cursorAgent.cliPath}`);
+      const keyHint = this.plugin.settings.cursor.apiKey.trim() ? "API key set" : "login or API key";
+      this.statusEl.setText(`Cursor Agent · ${this.plugin.settings.cursorAgent.cliPath} · ${keyHint}`);
       return;
     }
 

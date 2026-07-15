@@ -5,27 +5,28 @@
 Runs the **Cursor Agent CLI** against your vault folder:
 
 ```bash
-agent -p "your prompt"
+CURSOR_API_KEY=crsr_… agent -p "your prompt"
 ```
 
 ## Authentication
 
-No API key in the plugin. The CLI uses:
+The plugin passes your **Cursor API key** (`crsr_…`) to the CLI as `CURSOR_API_KEY` when set in settings (shared with the `cursor-sdk` backend).
 
-1. **`agent login`** — Cursor subscription session on this machine (recommended), or
-2. **`CURSOR_API_KEY`** in the shell environment (for automation)
+Fallback if no key is configured:
+
+1. **`agent login`** — Cursor session on this machine
 
 ## Install
 
 ```bash
 curl https://cursor.com/install -fsS | bash
-agent login
 ```
 
 ## Settings
 
 | Field | Default | Description |
 |-------|---------|-------------|
+| `cursor.apiKey` | — | `crsr_…` — injected as `CURSOR_API_KEY` for the CLI |
 | `cursorAgent.cliPath` | `agent` | Executable name or full path |
 
 ## Requirements
@@ -38,12 +39,11 @@ agent login
 
 - Non-streaming: waits for full `agent -p` output
 - Long runs may need timeout tuning
-- Automated environments without TTY may need `agent login` beforehand
 
 ## vs `cursor-sdk`
 
 | | `cursor-sdk` | `cursor-agent` |
 |---|-------------|----------------|
-| Key in plugin | Yes (`crsr_…`) | No |
-| Runs where | Cursor cloud | Local machine |
+| API key | Yes (`crsr_…`) | Yes (same setting, via env) |
+| Runs where | Cursor API (HTTP) | Local machine (CLI subprocess) |
 | Vault file tools | Prompt injection only | CLI can edit vault files |

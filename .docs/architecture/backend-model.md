@@ -9,7 +9,7 @@ The plugin exposes **three backends**, aligned with how users actually choose AI
 | ID | User label | Credential | What runs |
 |----|------------|------------|-----------|
 | **`cursor-sdk`** | Cursor agent (API key) | `crsr_…` in plugin settings | Cursor API — call agents programmatically (same as `@cursor/sdk` wire protocol) |
-| **`cursor-agent`** | Cursor Agent (CLI) | Machine login (`agent login`) — **no plugin API key** | `agent -p` subprocess with vault as `cwd` |
+| **`cursor-agent`** | Cursor Agent (CLI) | `crsr_…` and/or machine login | `agent -p` with `CURSOR_API_KEY` in vault `cwd` |
 | **`llm-gateway`** | Other models | OpenRouter / LiteLLM / OpenAI keys | OpenAI-compatible `/chat/completions` |
 
 ```mermaid

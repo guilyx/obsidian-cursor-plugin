@@ -11,8 +11,7 @@ export type SpawnFn = (
 
 /**
  * Runs the Cursor Agent CLI (`agent -p`) against the vault directory.
- * Auth uses the machine's Cursor login session — no plugin API key field.
- * ponytail: non-streaming stdout capture; CLI may need `agent login` once on this machine.
+ * Auth: `CURSOR_API_KEY` from settings (crsr_…), or fall back to `agent login` on the machine.
  */
 export class CursorAgentCliBackend implements ChatBackend {
   constructor(
@@ -40,7 +39,6 @@ export class CursorAgentCliBackend implements ChatBackend {
       ? `${input.contextPrefix}\n\n${input.userText}`
       : input.userText;
 
-    const { cliPath } = this.settings.cursorAgent;
     const runId = `cli-${Date.now()}`;
     yield { type: "run-started", agentId: "cursor-agent-cli", runId };
 
@@ -53,7 +51,11 @@ export class CursorAgentCliBackend implements ChatBackend {
         yield { type: "assistant-delta", text: stdout };
         yield { type: "assistant-done", text: stdout };
       } else {
-        yield { type: "error", message: "Cursor Agent returned empty output. Run `agent login` in a terminal." };
+        yield {
+          type: "error",
+          message:
+            "Cursor Agent returned empty output. Set a Cursor API key in settings or run `agent login`.",
+        };
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -66,6 +68,15 @@ export class CursorAgentCliBackend implements ChatBackend {
     }
   }
 
+  private cliEnv(): NodeJS.ProcessEnv {
+    const env = { ...process.env };
+    const key = this.settings.cursor.apiKey.trim();
+    if (key) {
+      env.CURSOR_API_KEY = key;
+    }
+    return env;
+  }
+
   private runCli(
     args: string[],
     cwd: string,
@@ -76,7 +87,7 @@ export class CursorAgentCliBackend implements ChatBackend {
     return new Promise((resolve, reject) => {
       const child = this.spawnFn(cliPath, args, {
         cwd,
-        env: process.env,
+        env: this.cliEnv(),
         stdio: ["ignore", "pipe", "pipe"],
       }) as ChildProcessWithoutNullStreams;
 

@@ -25,7 +25,7 @@ export class CursorSettingsTab extends PluginSettingTab {
       );
 
     containerEl.createEl("p", {
-      text: "Three backends: Cursor SDK (API key), Cursor Agent CLI (local login), or other models via LiteLLM/OpenRouter.",
+      text: "Three backends: Cursor agent (API key), Cursor Agent CLI (API key or login), or other models via LiteLLM/OpenRouter.",
       cls: "setting-item-description",
     });
 
@@ -235,11 +235,25 @@ export class CursorSettingsTab extends PluginSettingTab {
 
   private displayCursorAgentSettings(containerEl: HTMLElement): void {
     const agent = this.plugin.settings.cursorAgent;
+    const cursor = this.plugin.settings.cursor;
 
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "Runs `agent -p` in your vault folder. Authenticate once with `agent login` — no API key stored in the plugin.",
+      text: "Runs `agent -p` in your vault folder. Set a Cursor API key (recommended) or use `agent login` on this machine.",
     });
+
+    new Setting(containerEl)
+      .setName("Cursor API key")
+      .setDesc("Passed to the CLI as CURSOR_API_KEY. Same key as Cursor agent (API) backend.")
+      .addText((text) =>
+        text
+          .setPlaceholder("crsr_…")
+          .setValue(cursor.apiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.cursor.apiKey = value;
+            await this.plugin.saveSettings();
+          }),
+      );
 
     new Setting(containerEl)
       .setName("Agent command")

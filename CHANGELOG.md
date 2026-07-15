@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Backend regression tests (mocked `fetch` + `spawn`): `CursorSdkBackend`, `CursorAgentCliBackend`, `LlmGatewayBackend`, `BackendRouter`, `CursorApiClient`
 - Esbuild test runner (`scripts/run-tests.mjs`) for reliable CI execution
+- **`cursor-agent` API key auth** — plugin passes `settings.cursor.apiKey` to the CLI as `CURSOR_API_KEY` (shared with `cursor-sdk`)
 
 ### Changed
 
 - **`cursor-sdk` wording** — call Cursor agents through the API (not “cloud agents only”)
+- Cursor Agent CLI settings + setup wizard: API key field and status hints (key or `agent login`)
 
 ## [0.5.0] - 2026-07-15
 

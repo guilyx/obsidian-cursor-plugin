@@ -10,13 +10,14 @@ export interface SpawnCall {
   command: string;
   args: string[];
   cwd: string;
+  env: NodeJS.ProcessEnv;
 }
 
 /** ponytail: minimal fake child_process for CLI backend tests. */
 export function createMockSpawn(
   onSpawn: (call: SpawnCall, child: MockChild) => void,
 ): typeof import("node:child_process").spawn {
-  return ((command: string, args: string[], options: { cwd: string }) => {
+  return ((command: string, args: string[], options: { cwd: string; env: NodeJS.ProcessEnv }) => {
     const child = new EventEmitter() as MockChild;
     const stdout = new EventEmitter();
     const stderr = new EventEmitter();
@@ -25,7 +26,7 @@ export function createMockSpawn(
     child.kill = () => {
       child.emit("close", 0);
     };
-    onSpawn({ command, args, cwd: options.cwd }, child);
+    onSpawn({ command, args, cwd: options.cwd, env: options.env }, child);
     return child as unknown as ReturnType<typeof import("node:child_process").spawn>;
   }) as typeof import("node:child_process").spawn;
 }
