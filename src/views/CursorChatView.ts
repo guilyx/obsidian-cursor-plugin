@@ -1,8 +1,9 @@
-import { ItemView, MarkdownRenderer, Menu, TFile, TFolder, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, MarkdownRenderer, Menu, Notice, TFile, TFolder, WorkspaceLeaf, setIcon } from "obsidian";
 import type CursorChatPlugin from "../main";
 import { VIEW_TYPE } from "../constants";
 import type { ChatSession } from "../types/chat";
 import type { StoredMessage } from "../types/chat";
+import { vaultPathsFromDragEvent, attachmentFromAbstractFile } from "../context/vaultDragPath";
 import { BACKEND_LABELS } from "../backends/backendIds";
 import type { ChatBackendId } from "../types/chat";
 import type { CursorConversationMode } from "../types/cursor-api";
@@ -258,22 +259,23 @@ export class CursorChatView extends ItemView {
   }
 
   private handleDrop(evt: DragEvent): void {
-    const path = this.pathFromDragEvent(evt);
-    if (path) {
+    const paths = vaultPathsFromDragEvent(this.app, evt);
+    if (paths.length === 0) {
+      return;
+    }
+    for (const path of paths) {
       this.attachFromVaultPath(path);
     }
   }
 
-  private pathFromDragEvent(evt: DragEvent): string | null {
-    const dt = evt.dataTransfer;
-    if (!dt) {
-      return null;
+  private attachFromVaultPath(path: string): void {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    const att = file ? attachmentFromAbstractFile(file) : null;
+    if (att) {
+      this.addAttachment(att);
+      return;
     }
-    const plain = dt.getData("text/plain")?.trim();
-    if (plain && this.app.vault.getAbstractFileByPath(plain)) {
-      return plain;
-    }
-    return plain || null;
+    new Notice(`Could not attach: ${path}`);
   }
 
   private openHeaderMenu(evt: MouseEvent): void {
@@ -351,26 +353,17 @@ export class CursorChatView extends ItemView {
 
   private openAttachPicker(): void {
     new VaultPathSuggestModal(this.app, (item) => {
+      const att = attachmentFromAbstractFile(item);
+      if (!att) {
+        return;
+      }
+      this.addAttachment(att);
       if (item instanceof TFile) {
-        this.attachFromVaultPath(item.path);
         const mention = `[[${item.basename}]] `;
         this.composerEl.value = `${this.composerEl.value}${mention}`;
-      } else {
-        this.attachFromVaultPath(item.path);
       }
       this.composerEl.focus();
     }).open();
-  }
-
-  private attachFromVaultPath(path: string): void {
-    const file = this.app.vault.getAbstractFileByPath(path);
-    if (file instanceof TFile) {
-      this.addAttachment({ kind: "file", path: file.path, label: file.basename });
-      return;
-    }
-    if (file instanceof TFolder) {
-      this.addAttachment({ kind: "folder", path: file.path, label: file.name });
-    }
   }
 
   private addAttachment(att: ChatAttachment): void {

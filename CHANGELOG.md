@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Folder attachments** — parse Obsidian drag payloads (`obsidian://`, `[[wikilinks]]`, `app://obsidian.md` HTML); folders listed first in attach picker
 - **Cloud SDK `bc-<uuid>` validation error** — ignore or clear `cursorAgentId` when it belongs to the other runtime (e.g. local `agent-…` id reused after switching to cloud REST)
 - **Bridge integration test** — removed TypeScript `!` syntax from `.mjs` file (CI parse error)
 - Integration tests skip (not fail) when `CURSOR_API_KEY` is missing, invalid, or billing blocks cloud agents
