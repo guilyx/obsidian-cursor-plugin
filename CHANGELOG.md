@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-14
+
+### Added
+
+- **SDK bridge stub** (`cursor-sdk-local`) — `bridge/` package with health + mock SSE server
+- `BridgeApiClient` + `CursorBridgeBackend` wired through `BackendRouter`
+- Settings: bridge URL, bridge token, health test via `GET /health`
+- Vault path passed to bridge on agent create (local folder vaults only)
+
+### Notes
+
+- Bridge is a **stub** — full `@cursor/sdk` integration is a follow-up; stub returns a demo assistant message
+
 ## [0.3.0] - 2026-07-14
 
 ### Added

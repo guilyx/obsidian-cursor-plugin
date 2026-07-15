@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, addIcon } from "obsidian";
+import { Plugin, WorkspaceLeaf, addIcon, FileSystemAdapter } from "obsidian";
 import { DEFAULT_SETTINGS, type CursorChatSettings } from "./settings/CursorSettings";
 import { CursorSettingsTab } from "./settings/CursorSettingsTab";
 import { CursorChatView } from "./views/CursorChatView";
@@ -7,6 +7,7 @@ import { VaultContextBuilder } from "./context/VaultContextBuilder";
 import { ChatSessionManager } from "./session/ChatSessionManager";
 import { ByokBackend } from "./backends/ByokBackend";
 import { CursorRestBackend } from "./backends/CursorRestBackend";
+import { CursorBridgeBackend } from "./backends/CursorBridgeBackend";
 import { BackendRouter } from "./backends/BackendRouter";
 
 const MESSAGE_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
@@ -58,7 +59,14 @@ export default class CursorChatPlugin extends Plugin {
   rebuildRouter(): void {
     const byok = new ByokBackend(this.settings);
     const cursorRest = new CursorRestBackend(this.settings);
-    this.router = new BackendRouter(this.settings, byok, cursorRest);
+    const cursorBridge = new CursorBridgeBackend(this.settings, () => {
+      const adapter = this.app.vault.adapter;
+      if (adapter instanceof FileSystemAdapter) {
+        return adapter.getBasePath();
+      }
+      return null;
+    });
+    this.router = new BackendRouter(this.settings, byok, cursorRest, cursorBridge);
     this.contextBuilder = new VaultContextBuilder(this.app, this.settings);
   }
 

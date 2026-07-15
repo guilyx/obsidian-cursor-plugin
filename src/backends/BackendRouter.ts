@@ -8,6 +8,7 @@ export class BackendRouter {
     private readonly settings: CursorChatSettings,
     private readonly byok: ChatBackend,
     private readonly cursorRest: ChatBackend,
+    private readonly cursorBridge: ChatBackend,
   ) {}
 
   getBackend(): ChatBackend {
@@ -17,9 +18,7 @@ export class BackendRouter {
       case "cursor-rest":
         return this.cursorRest;
       case "cursor-sdk-local":
-        throw new Error(
-          "Cursor SDK bridge is not implemented yet. Use BYOK or Cursor REST.",
-        );
+        return this.cursorBridge;
       default:
         return this.byok;
     }
