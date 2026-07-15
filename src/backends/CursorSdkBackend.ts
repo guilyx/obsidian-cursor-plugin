@@ -107,7 +107,10 @@ export class CursorSdkBackend implements ChatBackend {
           const created = await bridge.createAgent({
             name: input.session.title || "Obsidian chat",
             cwd: vaultPath,
-            model: cursor.defaultModelId ? { id: cursor.defaultModelId } : undefined,
+            model: {
+              id: cursor.defaultModelId || "composer-2.5",
+              fast: true,
+            },
             prompt: { text: promptText },
           });
           agentId = created.agent.id;

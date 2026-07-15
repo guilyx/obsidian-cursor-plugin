@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`cursor-sdk` is not cloud-only** — local SDK runs agent loop in Node on vault disk; cloud REST is optional
+- Local SDK bridge uses canonical `Agent.create({ model: { id, params: [{ fast }] }, local: { cwd } })`
 - Default `cursor.sdkRuntime`: `local`
 - Cloud Agents billing errors suggest switching to local SDK or CLI
 

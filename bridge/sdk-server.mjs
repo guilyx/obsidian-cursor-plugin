@@ -6,6 +6,7 @@
 import http from "node:http";
 import { randomUUID } from "node:crypto";
 import { Agent } from "@cursor/sdk";
+import { buildLocalAgentOptions } from "./local-agent-options.mjs";
 
 const PORT = Number(process.env.BRIDGE_PORT ?? 8765);
 const HOST = process.env.BRIDGE_HOST ?? "127.0.0.1";
@@ -192,11 +193,15 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const agent = await Agent.create({
-        apiKey,
-        model: body.model?.id ? { id: body.model.id } : { id: "composer-2.5" },
-        local: { cwd: body.cwd, settingSources: ["project", "user"] },
-      });
+      const modelId = body.model?.id ?? "composer-2.5";
+      const agent = await Agent.create(
+        buildLocalAgentOptions({
+          apiKey,
+          cwd: body.cwd,
+          modelId,
+          fast: body.model?.fast !== false,
+        }),
+      );
 
       agents.set(agent.agentId, { agent, cwd: body.cwd });
       const run = await agent.send(body.prompt.text);

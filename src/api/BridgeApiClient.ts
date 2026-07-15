@@ -36,7 +36,9 @@ export class BridgeApiClient implements RunStreamClientLike {
     return this.json("GET", "/health");
   }
 
-  async createAgent(body: CreateAgentRequest & { cwd: string }): Promise<CreateAgentResponse> {
+  async createAgent(
+    body: CreateAgentRequest & { cwd: string; model?: { id: string; fast?: boolean } },
+  ): Promise<CreateAgentResponse> {
     return this.json<CreateAgentResponse>("POST", "/agents", {
       ...body,
       apiKey: this.apiKey,

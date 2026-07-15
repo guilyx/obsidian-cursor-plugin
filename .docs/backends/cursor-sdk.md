@@ -22,6 +22,19 @@ export CURSOR_API_KEY=crsr_…
 npm run start
 ```
 
+Local agent creation (what the bridge runs):
+
+```typescript
+const agent = await Agent.create({
+  apiKey: process.env.CURSOR_API_KEY!,
+  model: {
+    id: "composer-2.5",
+    params: [{ id: "fast", value: "true" }],
+  },
+  local: { cwd: process.cwd() },
+});
+```
+
 Plugin settings: **SDK runtime → Local**, **Bridge URL** `http://127.0.0.1:8765`.
 
 ## Why not `@cursor/sdk` inside the plugin?

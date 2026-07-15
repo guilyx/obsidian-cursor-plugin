@@ -37,6 +37,18 @@ Same `crsr_…` key for both. **Local does not require Cloud Agents usage-based 
 
 > **Local means local agent loop, not local model.** Inference still goes through Cursor's hosted models.
 
+```typescript
+// Canonical local agent (bridge uses this shape)
+const agent = await Agent.create({
+  apiKey: process.env.CURSOR_API_KEY!,
+  model: {
+    id: "composer-2.5",
+    params: [{ id: "fast", value: "true" }],
+  },
+  local: { cwd: vaultPath },
+});
+```
+
 ### Why not bundle `@cursor/sdk` in the plugin?
 
 Obsidian plugins run in a browser-like renderer (no Node 22 native binaries). Local SDK runs in the **bridge** sidecar or via **CLI**.
