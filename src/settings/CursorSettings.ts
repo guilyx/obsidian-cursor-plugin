@@ -36,6 +36,8 @@ export interface CursorAgentSettings {
 export interface CursorChatSettings {
   backend: ChatBackendId;
   includeActiveNote: boolean;
+  /** When true, "Send selection to chat" sends immediately instead of inserting into composer. */
+  sendSelectionImmediately: boolean;
   maxContextChars: number;
   openChatOnStartup: boolean;
   hasAcknowledgedPrivacy: boolean;
@@ -48,6 +50,7 @@ export interface CursorChatSettings {
 export const DEFAULT_SETTINGS: CursorChatSettings = {
   backend: "cursor-sdk",
   includeActiveNote: true,
+  sendSelectionImmediately: false,
   maxContextChars: 32000,
   openChatOnStartup: false,
   hasAcknowledgedPrivacy: false,

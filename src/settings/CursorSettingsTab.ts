@@ -337,6 +337,18 @@ export class CursorSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("Send selection immediately")
+      .setDesc("When using the send-selection command, send at once instead of inserting into the composer.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.sendSelectionImmediately)
+          .onChange(async (value) => {
+            this.plugin.settings.sendSelectionImmediately = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName("Max context characters")
       .addText((text) =>
         text

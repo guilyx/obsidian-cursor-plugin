@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, addIcon, FileSystemAdapter, requestUrl } from "obsidian";
+import { Plugin, WorkspaceLeaf, addIcon, FileSystemAdapter, requestUrl, Notice } from "obsidian";
 import { DEFAULT_SETTINGS, type CursorChatSettings } from "./settings/CursorSettings";
 import { inferByokProvider } from "./settings/byokProviders";
 import { migrateBackendId } from "./backends/backendIds";
@@ -59,6 +59,12 @@ export default class CursorChatPlugin extends Plugin {
       callback: () => this.openSetupWizard(),
     });
 
+    this.addCommand({
+      id: "send-selection-to-chat",
+      name: "Send selection to chat",
+      editorCallback: () => void this.sendSelectionToChat(),
+    });
+
     this.addSettingTab(new CursorSettingsTab(this.app, this));
 
     if (this.settings.openChatOnStartup) {
@@ -77,6 +83,14 @@ export default class CursorChatPlugin extends Plugin {
 
   openSetupWizard(): void {
     new SetupWizardModal(this.app, this).open();
+  }
+
+  openSettings(): void {
+    const app = this.app as typeof this.app & {
+      setting: { open(): void; openTabById(id: string): void };
+    };
+    app.setting.open();
+    app.setting.openTabById(this.manifest.id);
   }
 
   rebuildRouter(): void {
@@ -157,5 +171,33 @@ export default class CursorChatPlugin extends Plugin {
       leaf = rightLeaf;
     }
     workspace.revealLeaf(leaf);
+  }
+
+  getActiveChatView(): CursorChatView | null {
+    const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE)[0];
+    if (!leaf?.view || leaf.view.getViewType() !== VIEW_TYPE) {
+      return null;
+    }
+    return leaf.view as CursorChatView;
+  }
+
+  async sendSelectionToChat(): Promise<void> {
+    const selection = this.contextBuilder.getSelectionText();
+    if (!selection) {
+      new Notice("Select text in source mode first, then run this command.");
+      return;
+    }
+
+    await this.activateChatView();
+    const view = this.getActiveChatView();
+    if (!view) {
+      return;
+    }
+
+    if (this.settings.sendSelectionImmediately) {
+      await view.sendComposerText(selection);
+    } else {
+      view.insertComposerText(selection);
+    }
   }
 }

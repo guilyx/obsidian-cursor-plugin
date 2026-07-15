@@ -1,6 +1,8 @@
 import type { App } from "obsidian";
-import { MarkdownView, TFile } from "obsidian";
+import { MarkdownView, TFile, TFolder } from "obsidian";
 import type { CursorChatSettings } from "../settings/CursorSettings";
+import type { ChatAttachment } from "../views/chatAttachments";
+import { FOLDER_ATTACHMENT_FILE_LIMIT, listMarkdownFilesInFolder } from "./vaultPaths";
 
 export class VaultContextBuilder {
   constructor(
@@ -8,7 +10,7 @@ export class VaultContextBuilder {
     private readonly settings: CursorChatSettings,
   ) {}
 
-  async build(extraPaths: string[] = []): Promise<string> {
+  async build(attachments: ChatAttachment[] = []): Promise<string> {
     const parts: string[] = [];
 
     if (this.settings.includeActiveNote) {
@@ -20,11 +22,17 @@ export class VaultContextBuilder {
       }
     }
 
-    for (const path of extraPaths) {
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (file instanceof TFile) {
-        const body = await this.app.vault.read(file);
-        parts.push(`## Attached: [[${file.basename}]]\n\n${this.truncate(body)}`);
+    for (const att of attachments) {
+      if (att.kind === "file") {
+        const part = await this.buildFilePart(att.path);
+        if (part) {
+          parts.push(part);
+        }
+      } else {
+        const part = await this.buildFolderPart(att.path);
+        if (part) {
+          parts.push(part);
+        }
       }
     }
 
@@ -48,6 +56,43 @@ export class VaultContextBuilder {
   getSelectionSummary(): { chars: number } | null {
     const selection = this.getSelection();
     return selection ? { chars: selection.length } : null;
+  }
+
+  getSelectionText(): string {
+    return this.getSelection();
+  }
+
+  private async buildFilePart(path: string): Promise<string | null> {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) {
+      return null;
+    }
+    const body = await this.app.vault.read(file);
+    return `## Attached: [[${file.basename}]]\n\n${this.truncate(body)}`;
+  }
+
+  private async buildFolderPart(path: string): Promise<string | null> {
+    const folder = this.app.vault.getAbstractFileByPath(path);
+    if (!(folder instanceof TFolder)) {
+      return null;
+    }
+
+    const files = listMarkdownFilesInFolder(folder);
+    if (files.length === 0) {
+      return `## Attached folder: ${folder.path}/\n\n(no markdown files)`;
+    }
+
+    const header = `## Attached folder: ${folder.path}/\n\nIncluding ${files.length} note(s)${
+      files.length >= FOLDER_ATTACHMENT_FILE_LIMIT ? ` (first ${FOLDER_ATTACHMENT_FILE_LIMIT})` : ""
+    }:\n${files.map((f) => `- ${f.path}`).join("\n")}`;
+
+    const bodies: string[] = [];
+    for (const file of files) {
+      const body = await this.app.vault.read(file);
+      bodies.push(`### ${file.basename}\n\n${this.truncate(body)}`);
+    }
+
+    return `${header}\n\n---\n\n${bodies.join("\n\n---\n\n")}`;
   }
 
   private getSelection(): string {

@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **MIT License** — project and `bridge/` package licensed under MIT
+- **In-chat UX** — toolbar with settings, attach, and more menu; drag-and-drop notes/folders into composer; folder context attachments
+- **Header quick switcher** — change backend and model (or mode) without opening settings
+- **Retry on errors** — failed assistant bubbles show a Retry button
+- **Send selection to chat** — command palette entry inserts editor selection into composer
+- **Toggle active note** — include/exclude active note context from the ⋯ menu
+- **Message list drop zone** — drag notes or folders onto the thread area to attach
 - **Auto-start local SDK** — plugin spawns `bridge/sdk-server.mjs` on first use (no manual `cd bridge && npm run start`)
 - **SDK local runtime (default)** — `@cursor/sdk` via `bridge/sdk-server.mjs` (`Agent.create({ local: { cwd } })`)
 - Settings: `cursor.sdkRuntime` (`local` | `cloud`), `bridgeUrl`, `bridgeToken`
