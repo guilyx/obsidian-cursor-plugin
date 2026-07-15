@@ -13,20 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings: `cursor.sdkRuntime` (`local` | `cloud`), `bridgeUrl`, `bridgeToken`
 - Local SDK integration tests (`bridge/scripts/sdk-local-integration.mjs`)
 
-### Changed
-
-- Local SDK bridge uses canonical `Agent.create({ model: { id, params: [{ fast }] }, local: { cwd } })`
-- Default `cursor.sdkRuntime`: `local`
-- Cloud Agents billing errors suggest switching to local SDK or CLI
-
 ### Fixed
 
+- **Bridge integration test** — removed TypeScript `!` syntax from `.mjs` file (CI parse error)
 - Integration tests skip (not fail) when Cloud Agents billing blocks `POST /v1/agents`
 - API error messages parse nested `{ code, message }` objects
 - **SDK empty replies** — fall back to polling when SSE stream ends without assistant text, on `410`, or on network errors
 - **Chat text selection** — message bubbles are selectable/copyable in the chat sidebar
 
 ### Changed
+
+- Local SDK bridge uses canonical `Agent.create({ model: { id, params: [{ fast }] }, local: { cwd } })`
+- Default `cursor.sdkRuntime`: `local`
+- Cloud Agents billing errors suggest switching to local SDK or CLI
 
 - Default Cursor SDK mode: `plan` → `agent` (better for direct Q&A)
 

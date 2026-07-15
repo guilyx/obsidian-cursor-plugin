@@ -12,9 +12,11 @@ const apiKey = process.env.CURSOR_API_KEY?.trim();
 const live = apiKey ? describe : describe.skip;
 
 live("Cursor SDK local integration", () => {
+  const key = apiKey;
+
   it("GET /v1/me via Cursor.me", async () => {
     const { Cursor } = await import("@cursor/sdk");
-    const me = await Cursor.me({ apiKey: apiKey! });
+    const me = await Cursor.me({ apiKey: key });
     assert.ok(me, "expected user from Cursor.me");
   });
 
@@ -25,7 +27,7 @@ live("Cursor SDK local integration", () => {
       try {
         const agent = await Agent.create(
           buildLocalAgentOptions({
-            apiKey: apiKey!,
+            apiKey: key,
             cwd: process.cwd(),
           }),
         );
