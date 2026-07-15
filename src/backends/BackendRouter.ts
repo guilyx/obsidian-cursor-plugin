@@ -20,7 +20,7 @@ export class BackendRouter {
       case "cursor-sdk-local":
         return this.cursorBridge;
       default:
-        return this.byok;
+        return this.cursorRest;
     }
   }
 }

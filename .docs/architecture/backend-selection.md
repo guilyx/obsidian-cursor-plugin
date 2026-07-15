@@ -26,8 +26,10 @@ The plugin supports **multiple connection backends**. Pick based on what you nee
 
 | Your need | Recommended backend | Credential |
 |-----------|---------------------|------------|
-| Chat about notes, minimal deps, user has OpenAI key | `openai-compatible` | Provider BYOK |
-| Chat about notes, user has Cursor subscription + API key | `cursor-rest` | `crsr_…` |
+| **Default — Cursor-native chat about notes** | `cursor-rest` | `crsr_…` |
+| BYOK via OpenRouter (many models, one key) | `openai-compatible` → OpenRouter preset | OpenRouter `sk-or-…` |
+| BYOK via self-hosted LiteLLM proxy | `openai-compatible` → LiteLLM preset | LiteLLM master key |
+| Chat about notes, direct OpenAI key | `openai-compatible` → OpenAI preset | OpenAI `sk-…` |
 | Full Cursor agent: tools, MCP, plan/agent modes, cloud VM | `cursor-rest` or `cursor-sdk-cloud` | `crsr_…` |
 | Agent reads/writes vault **files on disk** (real paths) | `cursor-sdk-local` (bridge) | `crsr_…` |
 | Agent works on a GitHub repo linked to vault | `cursor-rest` with `repos[]` | `crsr_…` |
@@ -38,8 +40,10 @@ The plugin supports **multiple connection backends**. Pick based on what you nee
 ```mermaid
 flowchart TD
   START["What do you need?"]
-  START --> Q1{"Full Cursor agent\n(tools, MCP, edits)?"}
-  Q1 -->|No| BYOK["openai-compatible BYOK\nsimple chat"]
+  START --> Q0{"Want Cursor-native\n(agents, default)?"}
+  Q0 -->|Yes| REST["cursor-rest\ncrsr_…"]
+  Q0 -->|No| Q1{"Full Cursor agent\n(tools, MCP, edits)?"}
+  Q1 -->|No| BYOK["openai-compatible BYOK\nOpenRouter / LiteLLM / …"]
   Q1 -->|Yes| Q2{"Vault files on disk\nwithout prompt injection?"}
   Q2 -->|No| REST["cursor-rest\nCloud Agents API"]
   Q2 -->|Yes| BRIDGE["cursor-sdk-local bridge\nNode or Python sidecar"]
@@ -52,36 +56,36 @@ flowchart TD
 
 ## Backend implementations
 
-### 1. `openai-compatible` (BYOK — default for note Q&A)
-
-**Best for:** Summarize notes, ask questions, light editing suggestions — when the user already pays OpenAI/Anthropic/etc. directly.
-
-- Plugin calls provider's chat-completions API (streaming)
-- Vault context injected in system/user messages (same `VaultContextBuilder`)
-- No Cursor account required
-- No agent tools, no MCP, no `bc-*` agents
-
-Settings:
-
-| Field | Example |
-|-------|---------|
-| `provider` | `openai` \| `anthropic` \| `openai-compatible` |
-| `apiKey` | `sk-…` |
-| `baseUrl` | `https://api.openai.com/v1` or `https://api.scaleway.ai/v1` |
-| `model` | `gpt-4o`, `claude-sonnet-4-…`, etc. |
-
-See [BYOK](../backends/byok.md).
-
-### 2. `cursor-rest` (Cursor API key — no sidecar)
+### 1. `cursor-rest` (Cursor-native — **plugin default**)
 
 **Best for:** Cursor-native models and cloud agents without installing anything beyond Obsidian.
 
 - Direct HTTPS to `api.cursor.com` (Cloud Agents API v1)
 - SSE streaming from plugin via `fetch` + `eventsource-parser`
 - `@cursor/sdk` **not** bundled in plugin
-- Vault context still injected into `prompt.text` (Cursor has no vault mount)
+- Vault context injected into `prompt.text` (Cursor has no vault mount)
 
 See [Cursor REST](../backends/cursor-rest.md).
+
+### 2. `openai-compatible` (BYOK — OpenRouter / LiteLLM / …)
+
+**Best for:** Users who prefer their own LLM gateway — OpenRouter, LiteLLM proxy, or direct OpenAI.
+
+- Plugin calls provider's chat-completions API (streaming)
+- Vault context injected in system/user messages (same `VaultContextBuilder`)
+- No Cursor account required
+- No agent tools, no MCP, no `bc-*` agents
+
+Settings presets:
+
+| Provider | Base URL | Model example |
+|----------|----------|---------------|
+| OpenRouter | `https://openrouter.ai/api/v1` | `anthropic/claude-sonnet-4` |
+| LiteLLM | `http://127.0.0.1:4000/v1` | your proxy model name |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
+| Custom | any | any |
+
+See [BYOK](../backends/byok.md).
 
 ### 3. `cursor-sdk-local` (bridge — TypeScript or Python)
 
@@ -169,7 +173,8 @@ Only show relevant fields per backend. **Never send BYOK keys to Cursor** or `cr
 
 | Phase | Backend | Deliverable |
 |-------|---------|-------------|
-| **1** | `openai-compatible` | BYOK chat MVP — fastest user value |
+| **1** | `cursor-rest` | Cursor-native default |
+| **1b** | `openai-compatible` | BYOK via OpenRouter / LiteLLM |
 | **2** | `cursor-rest` | Cursor API key + cloud agent + SSE |
 | **3** | `cursor-sdk-local` | Optional bridge package + local agent mode |
 | **4** | Polish | Backend switcher, unified session UI, MCP via bridge |

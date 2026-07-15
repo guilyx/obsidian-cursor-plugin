@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Default backend is now Cursor REST** (`cursor-rest`) — Cursor-native out of the box
+- BYOK provider presets: **OpenRouter**, **LiteLLM proxy**, OpenAI, Custom
+- OpenRouter requests include recommended `Referer` / `X-Title` headers
+
 ## [0.4.0] - 2026-07-14
 
 ### Added

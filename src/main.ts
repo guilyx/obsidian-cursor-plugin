@@ -1,5 +1,6 @@
 import { Plugin, WorkspaceLeaf, addIcon, FileSystemAdapter } from "obsidian";
 import { DEFAULT_SETTINGS, type CursorChatSettings } from "./settings/CursorSettings";
+import { inferByokProvider } from "./settings/byokProviders";
 import { CursorSettingsTab } from "./settings/CursorSettingsTab";
 import { CursorChatView } from "./views/CursorChatView";
 import { VIEW_TYPE } from "./constants";
@@ -76,6 +77,9 @@ export default class CursorChatPlugin extends Plugin {
       this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
       this.settings.byok = Object.assign({}, DEFAULT_SETTINGS.byok, data.settings.byok);
       this.settings.cursor = Object.assign({}, DEFAULT_SETTINGS.cursor, data.settings.cursor);
+      if (!data.settings.byok?.provider) {
+        this.settings.byok.provider = inferByokProvider(this.settings.byok.baseUrl);
+      }
     }
   }
 
