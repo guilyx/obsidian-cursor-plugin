@@ -7,21 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-14
+
 ### Added
 
-- **PR #1 implementation:** plugin scaffold (esbuild, TypeScript, manifest)
-- BYOK backend (`openai-compatible`) with OpenAI-compatible streaming chat
-- Sidebar `CursorChatView` with markdown rendering, send/stop, new chat
-- Settings tab: API key, base URL, model, temperature, context options
-- `VaultContextBuilder` (active note + editor selection)
-- `BackendRouter` stub for future `cursor-rest` / SDK bridge
-- Local session persistence in plugin data
-- SSE parser self-check script (`npm run check:sse`)
-- Multi-PR roadmap: see `.docs/development/roadmap.md`
+- **Cursor REST backend** (`cursor-rest`) via Cloud Agents API v1
+- `CursorApiClient` — `me`, `listModels`, agent/run lifecycle, SSE stream
+- `CursorRestBackend` — maps chat sessions to `bc-*` agents, streams replies
+- Cursor SSE parser (`assistant`, `result`, `error`, `done`; `410` → poll `GET run`)
+- Settings: Cursor API key (`crsr_…`), model, mode, show thinking, test via `GET /v1/me`
+- Session persistence of `cursorAgentId` per chat thread
+- Stop button cancels in-flight Cursor runs
 
 ### Changed
 
-- Documentation moved to `.docs/` with MkDocs Material site and GitHub Pages workflow
+- `BackendRouter` wires `cursor-rest`; SDK bridge still stubbed
+- New chats use the currently selected backend
+- Settings tab split by backend (BYOK vs Cursor REST)
 
 ## [0.1.0] - 2026-07-14
 

@@ -36,9 +36,10 @@ export class CursorChatView extends ItemView {
     header.createSpan({ text: "Cursor Chat", cls: "cursor-chat-title" });
     const newBtn = header.createEl("button", { text: "New", cls: "cursor-chat-new-btn" });
     newBtn.onclick = () => {
-      this.plugin.sessions.createSession();
+      this.plugin.sessions.createSession(this.plugin.settings.backend);
       void this.plugin.persistSessions();
       this.renderMessages();
+      this.updateStatus();
     };
 
     this.messagesEl = root.createDiv({ cls: "cursor-chat-messages" });
@@ -76,11 +77,23 @@ export class CursorChatView extends ItemView {
   }
 
   private updateStatus(): void {
-    const { byok } = this.plugin.settings;
-    if (this.plugin.settings.backend !== "openai-compatible") {
-      this.statusEl.setText("Backend not available yet — switch to BYOK in settings.");
+    const { backend, byok, cursor } = this.plugin.settings;
+
+    if (backend === "cursor-sdk-local") {
+      this.statusEl.setText("SDK bridge not available — switch backend in settings.");
       return;
     }
+
+    if (backend === "cursor-rest") {
+      if (!cursor.apiKey.trim()) {
+        this.statusEl.setText("Configure Cursor API key in settings.");
+        return;
+      }
+      const model = cursor.defaultModelId || "default model";
+      this.statusEl.setText(`Cursor REST · ${model} · ${cursor.defaultMode}`);
+      return;
+    }
+
     if (!byok.baseUrl || !byok.model) {
       this.statusEl.setText("Configure provider in settings.");
       return;
@@ -90,7 +103,7 @@ export class CursorChatView extends ItemView {
 
   private renderMessages(): void {
     this.messagesEl.empty();
-    const session = this.plugin.sessions.ensureActive();
+    const session = this.plugin.sessions.ensureActive(this.plugin.settings.backend);
 
     if (session.messages.length === 0) {
       this.messagesEl.createDiv({
@@ -138,12 +151,12 @@ export class CursorChatView extends ItemView {
       return;
     }
 
-    if (this.plugin.settings.backend !== "openai-compatible") {
-      this.statusEl.setText("This backend is not implemented yet.");
+    if (this.plugin.settings.backend === "cursor-sdk-local") {
+      this.statusEl.setText("SDK bridge is not implemented yet.");
       return;
     }
 
-    const session = this.plugin.sessions.ensureActive();
+    const session = this.plugin.sessions.ensureActive(this.plugin.settings.backend);
     const userMsg: StoredMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -177,11 +190,19 @@ export class CursorChatView extends ItemView {
         contextPrefix,
         signal: this.abortController.signal,
       })) {
-        if (event.type === "assistant-delta") {
+        if (event.type === "run-started") {
+          this.plugin.sessions.setCursorAgentId(session.id, event.agentId);
+          this.statusEl.setText(`Cursor REST · run ${event.runId.slice(0, 8)}…`);
+        } else if (event.type === "assistant-delta") {
           full += event.text;
           assistantBody.empty();
           await MarkdownRenderer.render(this.app, full, assistantBody, "", this);
           this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+        } else if (event.type === "thinking-delta") {
+          // ponytail: append thinking inline until dedicated UI in PR #3
+          full += `\n\n> *Thinking:* ${event.text}`;
+          assistantBody.empty();
+          await MarkdownRenderer.render(this.app, full, assistantBody, "", this);
         } else if (event.type === "assistant-done") {
           full = event.text;
         } else if (event.type === "error") {
@@ -201,6 +222,7 @@ export class CursorChatView extends ItemView {
     } finally {
       this.abortController = null;
       this.setStreaming(false);
+      this.updateStatus();
     }
   }
 }

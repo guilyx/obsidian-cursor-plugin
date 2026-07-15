@@ -1,4 +1,4 @@
-import type { ChatSession, StoredMessage } from "../types/chat";
+import type { ChatBackendId, ChatSession, StoredMessage } from "../types/chat";
 
 export class ChatSessionManager {
   private sessions: ChatSession[] = [];
@@ -20,12 +20,12 @@ export class ChatSessionManager {
     return this.sessions.find((s) => s.id === this.activeId) ?? null;
   }
 
-  createSession(): ChatSession {
+  createSession(backend: ChatBackendId = "openai-compatible"): ChatSession {
     const now = new Date().toISOString();
     const session: ChatSession = {
       id: crypto.randomUUID(),
       title: "New chat",
-      backend: "openai-compatible",
+      backend,
       messages: [],
       createdAt: now,
       updatedAt: now,
@@ -35,8 +35,8 @@ export class ChatSessionManager {
     return session;
   }
 
-  ensureActive(): ChatSession {
-    return this.getActive() ?? this.createSession();
+  ensureActive(backend: ChatBackendId = "openai-compatible"): ChatSession {
+    return this.getActive() ?? this.createSession(backend);
   }
 
   addMessage(sessionId: string, message: StoredMessage): void {
@@ -59,6 +59,14 @@ export class ChatSessionManager {
       if (session) {
         session.updatedAt = new Date().toISOString();
       }
+    }
+  }
+
+  setCursorAgentId(sessionId: string, agentId: string): void {
+    const session = this.sessions.find((s) => s.id === sessionId);
+    if (session) {
+      session.cursorAgentId = agentId;
+      session.updatedAt = new Date().toISOString();
     }
   }
 }
