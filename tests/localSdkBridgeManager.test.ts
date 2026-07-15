@@ -68,7 +68,7 @@ describe("LocalSdkBridgeManager", () => {
       },
     };
 
-    const spawnFn = mockSpawn((command, args, options) => {
+    const spawnFn = mockSpawn((_command, args, options) => {
       if (args[0] === "--version") {
         return {
           stdout: {
@@ -87,8 +87,22 @@ describe("LocalSdkBridgeManager", () => {
         } as unknown as ChildProcess;
       }
 
+      if (args.includes("install")) {
+        return {
+          stderr: { on: () => {} },
+          on(event: string, cb: (...args: unknown[]) => void) {
+            if (event === "close") {
+              cb(0);
+            }
+            return this;
+          },
+          kill: () => {},
+        } as unknown as ChildProcess;
+      }
+
+      const serverArg = args.find((arg) => arg.endsWith("sdk-server.mjs"));
+      assert.ok(serverArg, `expected sdk-server.mjs spawn, got: ${args.join(" ")}`);
       spawned = true;
-      assert.match(args[0], /sdk-server\.mjs$/);
       assert.equal(options.cwd, path.join(repoRoot, "bridge"));
       return {
         stderr: { on: () => {} },
