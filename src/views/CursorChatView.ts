@@ -1,27 +1,28 @@
-import { ItemView, MarkdownRenderer, WorkspaceLeaf, type App } from "obsidian";
+import { ItemView, MarkdownRenderer, Menu, TFile, TFolder, WorkspaceLeaf, setIcon } from "obsidian";
 import type CursorChatPlugin from "../main";
 import { VIEW_TYPE } from "../constants";
 import type { StoredMessage } from "../types/chat";
-import { BACKEND_LABELS } from "../backends/backendIds";
 import { BYOK_PROVIDER_PRESETS } from "../settings/byokProviders";
-import { VaultFileSuggestModal } from "./VaultFileSuggestModal";
+import { VaultPathSuggestModal } from "./VaultPathSuggestModal";
 import { PrivacyNoticeModal } from "./PrivacyNoticeModal";
-
-interface AttachmentChip {
-  path: string;
-  label: string;
-}
+import {
+  attachmentChipLabel,
+  attachmentKey,
+  mergeAttachments,
+  type ChatAttachment,
+} from "./chatAttachments";
 
 export class CursorChatView extends ItemView {
   private messagesEl!: HTMLElement;
   private chipsEl!: HTMLElement;
+  private composerWrapEl!: HTMLElement;
   private sessionSelectEl!: HTMLSelectElement;
   private composerEl!: HTMLTextAreaElement;
   private sendBtn!: HTMLButtonElement;
   private stopBtn!: HTMLButtonElement;
   private statusEl!: HTMLElement;
   private abortController: AbortController | null = null;
-  private attachments: AttachmentChip[] = [];
+  private attachments: ChatAttachment[] = [];
 
   constructor(leaf: WorkspaceLeaf, private readonly plugin: CursorChatPlugin) {
     super(leaf);
@@ -58,14 +59,18 @@ export class CursorChatView extends ItemView {
       }
     });
 
-    const newBtn = headerActions.createEl("button", { text: "+", cls: "cursor-chat-new-btn", attr: { title: "New chat" } });
-    newBtn.onclick = () => {
+    this.createIconButton(headerActions, "paperclip", "Attach note or folder", () => this.openAttachPicker());
+    this.createIconButton(headerActions, "settings", "Open settings", () => this.plugin.openSettings());
+
+    this.createIconButton(headerActions, "plus", "New chat", () => {
       this.plugin.sessions.createSession(this.plugin.settings.backend);
       void this.plugin.persistSessions();
       this.refreshSessionSelect();
       this.renderMessages();
       this.updateStatus();
-    };
+    });
+
+    this.createIconButton(headerActions, "more-horizontal", "More actions", (evt) => this.openHeaderMenu(evt));
 
     this.messagesEl = root.createDiv({ cls: "cursor-chat-messages" });
     this.messagesEl.setAttr("role", "log");
@@ -77,10 +82,13 @@ export class CursorChatView extends ItemView {
     this.chipsEl = root.createDiv({ cls: "cursor-chat-chips" });
     this.renderContextChips();
 
-    const composerWrap = root.createDiv({ cls: "cursor-chat-composer-wrap" });
-    this.composerEl = composerWrap.createEl("textarea", {
+    this.composerWrapEl = root.createDiv({ cls: "cursor-chat-composer-wrap" });
+    this.composerEl = this.composerWrapEl.createEl("textarea", {
       cls: "cursor-chat-composer",
-      attr: { placeholder: "Ask about your notes… (@ to attach)", "aria-label": "Message" },
+      attr: {
+        placeholder: "Ask about your notes… (@ to attach, drag notes or folders here)",
+        "aria-label": "Message",
+      },
     });
     this.composerEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -88,11 +96,14 @@ export class CursorChatView extends ItemView {
         void this.sendMessage();
       }
       if (e.key === "@") {
-        window.setTimeout(() => this.openMentionPicker(), 0);
+        window.setTimeout(() => this.openAttachPicker(), 0);
       }
     });
 
-    const actions = composerWrap.createDiv({ cls: "cursor-chat-actions" });
+    this.registerDropTarget(this.composerWrapEl);
+    this.registerDropTarget(this.chipsEl);
+
+    const actions = this.composerWrapEl.createDiv({ cls: "cursor-chat-actions" });
     this.stopBtn = actions.createEl("button", { text: "Stop", cls: "cursor-chat-stop-btn", attr: { "aria-label": "Stop generation" } });
     this.stopBtn.style.display = "none";
     this.stopBtn.onclick = () => this.stopGeneration();
@@ -109,6 +120,85 @@ export class CursorChatView extends ItemView {
     this.stopGeneration();
   }
 
+  private createIconButton(
+    parent: HTMLElement,
+    icon: string,
+    label: string,
+    onClick: (evt: MouseEvent) => void,
+  ): HTMLButtonElement {
+    const btn = parent.createEl("button", { cls: "cursor-chat-icon-btn clickable-icon", attr: { "aria-label": label } });
+    setIcon(btn, icon);
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  private registerDropTarget(el: HTMLElement): void {
+    this.registerDomEvent(el, "dragover", (evt) => {
+      evt.preventDefault();
+      el.addClass("cursor-chat-drop-target");
+    });
+    this.registerDomEvent(el, "dragleave", () => {
+      el.removeClass("cursor-chat-drop-target");
+    });
+    this.registerDomEvent(el, "drop", (evt) => {
+      evt.preventDefault();
+      el.removeClass("cursor-chat-drop-target");
+      this.handleDrop(evt);
+    });
+  }
+
+  private handleDrop(evt: DragEvent): void {
+    const path = this.pathFromDragEvent(evt);
+    if (path) {
+      this.attachFromVaultPath(path);
+    }
+  }
+
+  private pathFromDragEvent(evt: DragEvent): string | null {
+    const dt = evt.dataTransfer;
+    if (!dt) {
+      return null;
+    }
+    const plain = dt.getData("text/plain")?.trim();
+    if (plain && this.app.vault.getAbstractFileByPath(plain)) {
+      return plain;
+    }
+    return plain || null;
+  }
+
+  private openHeaderMenu(evt: MouseEvent): void {
+    const session = this.plugin.sessions.getActive();
+    const menu = new Menu();
+
+    menu.addItem((item) => {
+      item.setTitle("Attach note or folder").setIcon("paperclip").onClick(() => this.openAttachPicker());
+    });
+    menu.addItem((item) => {
+      item.setTitle("Settings").setIcon("settings").onClick(() => this.plugin.openSettings());
+    });
+    menu.addItem((item) => {
+      item.setTitle("Set up Cursor Chat").setIcon("wand").onClick(() => this.plugin.openSetupWizard());
+    });
+
+    if (session) {
+      menu.addSeparator();
+      menu.addItem((item) => {
+        item
+          .setTitle("Delete chat")
+          .setIcon("trash")
+          .onClick(() => {
+            this.plugin.sessions.deleteSession(session.id);
+            void this.plugin.persistSessions();
+            this.refreshSessionSelect();
+            this.renderMessages();
+            this.updateStatus();
+          });
+      });
+    }
+
+    menu.showAtMouseEvent(evt);
+  }
+
   private maybeShowPrivacyNotice(): void {
     if (this.plugin.settings.hasAcknowledgedPrivacy) {
       return;
@@ -119,13 +209,7 @@ export class CursorChatView extends ItemView {
         this.plugin.settings.hasAcknowledgedPrivacy = true;
         void this.plugin.saveSettings();
       },
-      () => {
-        const app = this.app as App & {
-          setting: { open(): void; openTabById(id: string): void };
-        };
-        app.setting.open();
-        app.setting.openTabById(this.plugin.manifest.id);
-      },
+      () => this.plugin.openSettings(),
     ).open();
   }
 
@@ -144,17 +228,33 @@ export class CursorChatView extends ItemView {
     }
   }
 
-  private openMentionPicker(): void {
-    new VaultFileSuggestModal(this.app, (file) => {
-      if (this.attachments.some((a) => a.path === file.path)) {
-        return;
+  private openAttachPicker(): void {
+    new VaultPathSuggestModal(this.app, (item) => {
+      if (item instanceof TFile) {
+        this.attachFromVaultPath(item.path);
+        const mention = `[[${item.basename}]] `;
+        this.composerEl.value = `${this.composerEl.value}${mention}`;
+      } else {
+        this.attachFromVaultPath(item.path);
       }
-      this.attachments.push({ path: file.path, label: file.basename });
-      this.renderContextChips();
-      const mention = `[[${file.basename}]] `;
-      this.composerEl.value = `${this.composerEl.value}${mention}`;
       this.composerEl.focus();
     }).open();
+  }
+
+  private attachFromVaultPath(path: string): void {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (file instanceof TFile) {
+      this.addAttachment({ kind: "file", path: file.path, label: file.basename });
+      return;
+    }
+    if (file instanceof TFolder) {
+      this.addAttachment({ kind: "folder", path: file.path, label: file.name });
+    }
+  }
+
+  private addAttachment(att: ChatAttachment): void {
+    this.attachments = mergeAttachments(this.attachments, [att]);
+    this.renderContextChips();
   }
 
   private renderContextChips(): void {
@@ -173,9 +273,10 @@ export class CursorChatView extends ItemView {
 
     for (const att of this.attachments) {
       chips.push({
-        label: `📎 ${att.label}`,
+        label: attachmentChipLabel(att),
         onRemove: () => {
-          this.attachments = this.attachments.filter((a) => a.path !== att.path);
+          const key = attachmentKey(att);
+          this.attachments = this.attachments.filter((a) => attachmentKey(a) !== key);
           this.renderContextChips();
         },
       });
@@ -198,29 +299,36 @@ export class CursorChatView extends ItemView {
 
   private updateStatus(): void {
     const { backend, byok, cursor } = this.plugin.settings;
+    this.statusEl.removeClass("cursor-chat-status--action");
 
     if (backend === "cursor-agent") {
-      const keyHint = this.plugin.settings.cursor.apiKey.trim() ? "API key set" : "login or API key";
+      const keyHint = cursor.apiKey.trim() ? "API key set" : "login or API key";
       this.statusEl.setText(`Cursor Agent · ${this.plugin.settings.cursorAgent.cliPath} · ${keyHint}`);
       return;
     }
 
     if (backend === "cursor-sdk") {
       if (!cursor.apiKey.trim()) {
-        this.statusEl.setText("Configure Cursor API key — run Set up Cursor Chat.");
+        this.statusEl.setText("Configure Cursor API key — click to open settings.");
+        this.statusEl.addClass("cursor-chat-status--action");
+        this.statusEl.onclick = () => this.plugin.openSettings();
         return;
       }
       const model = cursor.defaultModelId || "default model";
       this.statusEl.setText(`Cursor SDK · ${model} · ${cursor.defaultMode}`);
+      this.statusEl.onclick = null;
       return;
     }
 
     if (!byok.baseUrl || !byok.model) {
-      this.statusEl.setText("Configure LLM gateway in settings.");
+      this.statusEl.setText("Configure LLM gateway — click to open settings.");
+      this.statusEl.addClass("cursor-chat-status--action");
+      this.statusEl.onclick = () => this.plugin.openSettings();
       return;
     }
     const label = BYOK_PROVIDER_PRESETS[byok.provider]?.label ?? "LLM gateway";
     this.statusEl.setText(`${label} · ${byok.model}`);
+    this.statusEl.onclick = null;
   }
 
   private renderMessages(): void {
@@ -230,7 +338,7 @@ export class CursorChatView extends ItemView {
     if (session.messages.length === 0) {
       this.messagesEl.createDiv({
         cls: "cursor-chat-empty",
-        text: "Ask questions about your notes. The active file is included when enabled in settings.",
+        text: "Ask questions about your notes. Drag a note or folder here, type @ to attach, or use the toolbar.",
       });
       return;
     }
@@ -297,7 +405,7 @@ export class CursorChatView extends ItemView {
     }
 
     const session = this.plugin.sessions.ensureActive(this.plugin.settings.backend);
-    const attachmentPaths = this.attachments.map((a) => a.path);
+    const attachments = [...this.attachments];
 
     const userMsg: StoredMessage = {
       id: crypto.randomUUID(),
@@ -329,7 +437,7 @@ export class CursorChatView extends ItemView {
     this.abortController = new AbortController();
     this.setStreaming(true);
 
-    const contextPrefix = await this.plugin.contextBuilder.build(attachmentPaths);
+    const contextPrefix = await this.plugin.contextBuilder.build(attachments);
 
     try {
       const backend = this.plugin.router.getBackend();

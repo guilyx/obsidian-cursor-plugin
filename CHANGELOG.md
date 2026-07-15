@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **In-chat UX** — toolbar with settings, attach, and more menu; drag-and-drop notes/folders into composer; folder context attachments
 - **Auto-start local SDK** — plugin spawns `bridge/sdk-server.mjs` on first use (no manual `cd bridge && npm run start`)
 - **SDK local runtime (default)** — `@cursor/sdk` via `bridge/sdk-server.mjs` (`Agent.create({ local: { cwd } })`)
 - Settings: `cursor.sdkRuntime` (`local` | `cloud`), `bridgeUrl`, `bridgeToken`

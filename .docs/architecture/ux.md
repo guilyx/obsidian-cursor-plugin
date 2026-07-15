@@ -20,8 +20,8 @@ Default: closed on startup unless `openChatOnStartup` is enabled.
 
 ```
 ┌─────────────────────────────────────┐
-│ ◇ Weekly review          [+] [⋯]   │  ← title, new chat, menu
-│ Model: composer-2.5 ▾   Mode: Ask ▾│
+│ Cursor Chat  [session ▾] [📎][⚙][+]│  ← attach, settings, new chat
+│                              [⋯]   │  ← more menu (setup, delete)
 ├─────────────────────────────────────┤
 │                                     │
 │  ┌─ You ─────────────────────────┐ │
@@ -76,11 +76,25 @@ While streaming: composer may stay enabled for queue (v2) or disabled (v1).
 |-------------|-------|
 | Active note | `📄 filename.md` |
 | Selection | `✂️ selection (N chars)` |
-| @mention | `📎 [[Note]]` |
+| @mention / file drop | `📎 [[Note]]` |
+| Folder drop | `📁 folder-name` |
 
 Click × on chip to exclude from next message.
 
-### @mentions (Phase 2+)
+### Drag and drop
+
+Drop vault **notes** or **folders** onto the composer or context chip bar. Folders attach up to 20 markdown files into context.
+
+### Toolbar
+
+| Control | Action |
+|---------|--------|
+| 📎 Attach | Open fuzzy picker (notes + folders) |
+| ⚙ Settings | Open plugin settings tab |
+| + | New chat |
+| ⋯ More | Setup wizard, delete chat |
+
+### @mentions
 
 Typing `@` opens fuzzy file suggest (`FuzzySuggestModal` pattern). Selected file added as attachment chip.
 
