@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Run live Cursor API + local SDK integration tests (requires CURSOR_API_KEY). */
+/** Run live Cursor API + local SDK integration tests (requires valid CURSOR_API_KEY). */
 import esbuild from "esbuild";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -9,8 +9,20 @@ const entry = join(root, "tests", "cursorApi.integration.test.ts");
 const out = join(root, "tests", ".bundled", "cursorApi.integration.test.js");
 const bridgeDir = join(root, "bridge");
 
-if (!process.env.CURSOR_API_KEY?.trim()) {
+const apiKey = process.env.CURSOR_API_KEY?.trim();
+if (!apiKey) {
   console.log("CURSOR_API_KEY not set — skipping integration tests");
+  process.exit(0);
+}
+
+const probe = await fetch("https://api.cursor.com/v1/me", {
+  headers: { Authorization: `Bearer ${apiKey}` },
+});
+if (!probe.ok) {
+  const body = await probe.text().catch(() => "");
+  console.log(
+    `CURSOR_API_KEY invalid or unauthorized (${probe.status}) — skipping integration tests${body ? `: ${body.slice(0, 120)}` : ""}`,
+  );
   process.exit(0);
 }
 
