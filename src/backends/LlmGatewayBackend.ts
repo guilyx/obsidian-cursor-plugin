@@ -5,7 +5,7 @@ import { BYOK_PROVIDER_PRESETS } from "../settings/byokProviders";
 import { SYSTEM_PROMPT } from "../constants";
 import { readOpenAiSseStream } from "../api/SseReader";
 
-export class ByokBackend implements ChatBackend {
+export class LlmGatewayBackend implements ChatBackend {
   constructor(private readonly settings: CursorChatSettings) {}
 
   private requestHeaders(): Record<string, string> {

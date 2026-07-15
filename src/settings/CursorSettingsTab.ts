@@ -3,6 +3,7 @@ import type CursorChatPlugin from "../main";
 import type { CursorChatSettings } from "./CursorSettings";
 import { CursorApiClient } from "../api/CursorApiClient";
 import { BYOK_PROVIDER_PRESETS, applyByokProviderPreset } from "./byokProviders";
+import { BACKEND_LABELS } from "../backends/backendIds";
 
 export class CursorSettingsTab extends PluginSettingTab {
   constructor(app: App, private readonly plugin: CursorChatPlugin) {
@@ -14,19 +15,27 @@ export class CursorSettingsTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.createEl("h2", { text: "Cursor Chat" });
 
+    new Setting(containerEl)
+      .setName("Run setup wizard")
+      .setDesc("Re-run first-time configuration for backend and credentials.")
+      .addButton((btn) =>
+        btn.setButtonText("Set up").onClick(() => {
+          this.plugin.openSetupWizard();
+        }),
+      );
+
     containerEl.createEl("p", {
-      text: "Cursor is the default backend. Use BYOK for OpenRouter, LiteLLM, or other OpenAI-compatible providers.",
+      text: "Three backends: Cursor agent (API key), Cursor Agent CLI (API key or login), or other models via LiteLLM/OpenRouter.",
       cls: "setting-item-description",
     });
 
     new Setting(containerEl)
       .setName("Backend")
-      .setDesc("Cursor REST uses Cloud Agents API v1. BYOK routes to your chosen LLM gateway.")
       .addDropdown((dropdown) =>
         dropdown
-          .addOption("cursor-rest", "Cursor (default)")
-          .addOption("openai-compatible", "BYOK — OpenRouter / LiteLLM / …")
-          .addOption("cursor-sdk-local", "Cursor SDK bridge (local)")
+          .addOption("cursor-sdk", BACKEND_LABELS["cursor-sdk"])
+          .addOption("cursor-agent", BACKEND_LABELS["cursor-agent"])
+          .addOption("llm-gateway", BACKEND_LABELS["llm-gateway"])
           .setValue(this.plugin.settings.backend)
           .onChange(async (value) => {
             this.plugin.settings.backend = value as CursorChatSettings["backend"];
@@ -35,19 +44,19 @@ export class CursorSettingsTab extends PluginSettingTab {
           }),
       );
 
-    if (this.plugin.settings.backend === "cursor-sdk-local") {
-      this.displayBridgeSettings(containerEl);
-    } else if (this.plugin.settings.backend === "cursor-rest") {
-      this.displayCursorRestSettings(containerEl);
+    if (this.plugin.settings.backend === "cursor-sdk") {
+      this.displayCursorSdkSettings(containerEl);
+    } else if (this.plugin.settings.backend === "cursor-agent") {
+      this.displayCursorAgentSettings(containerEl);
     } else {
-      this.displayByokSettings(containerEl);
+      this.displayLlmGatewaySettings(containerEl);
     }
 
     this.displaySharedSettings(containerEl);
     this.displayTestConnection(containerEl);
   }
 
-  private displayByokSettings(containerEl: HTMLElement): void {
+  private displayLlmGatewaySettings(containerEl: HTMLElement): void {
     const byok = this.plugin.settings.byok;
     const preset = BYOK_PROVIDER_PRESETS[byok.provider];
 
@@ -68,14 +77,10 @@ export class CursorSettingsTab extends PluginSettingTab {
           }),
       );
 
-    containerEl.createEl("p", {
-      cls: "setting-item-description",
-      text: `Get a key: ${preset.helpUrl}`,
-    });
+    containerEl.createEl("p", { cls: "setting-item-description", text: `Get a key: ${preset.helpUrl}` });
 
     new Setting(containerEl)
       .setName("API key")
-      .setDesc("Provider secret (leave empty for local LiteLLM/Ollama without auth).")
       .addText((text) =>
         text
           .setPlaceholder(preset.apiKeyPlaceholder)
@@ -88,7 +93,6 @@ export class CursorSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Base URL")
-      .setDesc("OpenAI-compatible API root.")
       .addText((text) =>
         text
           .setPlaceholder(preset.baseUrl || "https://…/v1")
@@ -143,12 +147,16 @@ export class CursorSettingsTab extends PluginSettingTab {
       );
   }
 
-  private displayCursorRestSettings(containerEl: HTMLElement): void {
+  private displayCursorSdkSettings(containerEl: HTMLElement): void {
     const cursor = this.plugin.settings.cursor;
+
+    containerEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "Uses the Cursor API to run agents with your crsr_… key — same agent platform as @cursor/sdk (local or cloud per agent config).",
+    });
 
     new Setting(containerEl)
       .setName("Cursor API key")
-      .setDesc("From Cursor Dashboard → API Keys (format crsr_…).")
       .addText((text) =>
         text
           .setPlaceholder("crsr_…")
@@ -161,7 +169,7 @@ export class CursorSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Default model")
-      .setDesc("Leave empty to use Cursor account default. Use Fetch models to list options.")
+      .setDesc("Leave empty for account default.")
       .addText((text) =>
         text
           .setPlaceholder("composer-2.5")
@@ -215,7 +223,6 @@ export class CursorSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Show thinking")
-      .setDesc("Stream thinking events when the API sends them.")
       .addToggle((toggle) =>
         toggle
           .setValue(cursor.showThinking)
@@ -226,47 +233,37 @@ export class CursorSettingsTab extends PluginSettingTab {
       );
   }
 
-  private displayBridgeSettings(containerEl: HTMLElement): void {
+  private displayCursorAgentSettings(containerEl: HTMLElement): void {
+    const agent = this.plugin.settings.cursorAgent;
     const cursor = this.plugin.settings.cursor;
 
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "Run the local bridge: cd bridge && BRIDGE_TOKEN=… npm start",
+      text: "Runs `agent -p` in your vault folder. Set a Cursor API key (recommended) or use `agent login` on this machine.",
     });
 
     new Setting(containerEl)
-      .setName("Bridge URL")
+      .setName("Cursor API key")
+      .setDesc("Passed to the CLI as CURSOR_API_KEY. Same key as Cursor agent (API) backend.")
       .addText((text) =>
         text
-          .setValue(cursor.bridgeUrl)
+          .setPlaceholder("crsr_…")
+          .setValue(cursor.apiKey)
           .onChange(async (value) => {
-            this.plugin.settings.cursor.bridgeUrl = value;
+            this.plugin.settings.cursor.apiKey = value;
             await this.plugin.saveSettings();
           }),
       );
 
     new Setting(containerEl)
-      .setName("Bridge token")
-      .setDesc("Must match BRIDGE_TOKEN on the bridge process.")
+      .setName("Agent command")
+      .setDesc("Install: curl https://cursor.com/install -fsS | bash")
       .addText((text) =>
         text
-          .setPlaceholder("dev-bridge-token")
-          .setValue(cursor.bridgeToken)
+          .setPlaceholder("agent")
+          .setValue(agent.cliPath)
           .onChange(async (value) => {
-            this.plugin.settings.cursor.bridgeToken = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("Default model")
-      .setDesc("Passed to bridge on agent create (stub ignores until full SDK).")
-      .addText((text) =>
-        text
-          .setPlaceholder("composer-2.5")
-          .setValue(cursor.defaultModelId)
-          .onChange(async (value) => {
-            this.plugin.settings.cursor.defaultModelId = value;
+            this.plugin.settings.cursorAgent.cliPath = value.trim() || "agent";
             await this.plugin.saveSettings();
           }),
       );
@@ -275,7 +272,6 @@ export class CursorSettingsTab extends PluginSettingTab {
   private displaySharedSettings(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName("Include active note")
-      .setDesc("Inject the open note into each message.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.includeActiveNote)
@@ -301,17 +297,17 @@ export class CursorSettingsTab extends PluginSettingTab {
   }
 
   private displayTestConnection(containerEl: HTMLElement): void {
-    const isCursor = this.plugin.settings.backend === "cursor-rest";
-    const isBridge = this.plugin.settings.backend === "cursor-sdk-local";
+    const backend = this.plugin.settings.backend;
+    const desc =
+      backend === "cursor-agent"
+        ? "Runs agent --version in your vault directory."
+        : backend === "cursor-sdk"
+          ? "Calls GET /v1/me on api.cursor.com."
+          : "Calls GET /models on your LLM gateway URL.";
+
     new Setting(containerEl)
       .setName("Test connection")
-      .setDesc(
-        isBridge
-          ? "Calls GET /health on the local bridge."
-          : isCursor
-            ? "Calls GET /v1/me on api.cursor.com."
-            : "Calls GET /models on your base URL.",
-      )
+      .setDesc(desc)
       .addButton((btn) =>
         btn.setButtonText("Test").onClick(async () => {
           btn.setDisabled(true);

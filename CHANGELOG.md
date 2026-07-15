@@ -9,15 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **CI workflow** (`.github/workflows/ci.yml`) — typecheck, build, tests, self-checks on push/PR
-- `npm run typecheck`, `npm run test`, `npm run ci`
-- Node test suite: SSE parser, BYOK providers, API errors, bridge stub integration
+- Backend regression tests (mocked `fetch` + `spawn`): `CursorSdkBackend`, `CursorAgentCliBackend`, `LlmGatewayBackend`, `BackendRouter`, `CursorApiClient`
+- Esbuild test runner (`scripts/run-tests.mjs`) for reliable CI execution
+- **`cursor-agent` API key auth** — plugin passes `settings.cursor.apiKey` to the CLI as `CURSOR_API_KEY` (shared with `cursor-sdk`)
 
 ### Changed
 
-- **Default backend is now Cursor REST** (`cursor-rest`) — Cursor-native out of the box
-- BYOK provider presets: **OpenRouter**, **LiteLLM proxy**, OpenAI, Custom
-- OpenRouter requests include recommended `Referer` / `X-Title` headers
+- **`cursor-sdk` wording** — call Cursor agents through the API (not “cloud agents only”)
+- Cursor Agent CLI settings + setup wizard: API key field and status hints (key or `agent login`)
+
+## [0.5.0] - 2026-07-15
+
+### Added
+
+- **Three-backend model** with clear user-facing names:
+  - `cursor-sdk` — Cursor agent via API key (`crsr_…`)
+  - `cursor-agent` — Cursor Agent CLI (`agent -p`), machine login
+  - `llm-gateway` — OpenRouter / LiteLLM / BYOK
+- **Set up Cursor Chat** command + setup wizard modal
+- Auto-open setup wizard on first chat until configured
+- Architecture doc: [Backend model (v0.5+)](.docs/architecture/backend-model.md)
+
+### Changed
+
+- **BREAKING:** Renamed backend IDs (`cursor-rest` → `cursor-sdk`, etc.) with automatic migration on load
+- Removed stub SDK bridge from router (CLI replaces it for local agent use)
+- Default backend: `cursor-sdk`
+
+### Removed
+
+- User-facing `cursor-sdk-local` bridge backend (bridge package kept for future sidecar)
 
 ## [0.4.0] - 2026-07-14
 

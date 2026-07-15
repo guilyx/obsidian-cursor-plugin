@@ -1,11 +1,15 @@
 import type { ChatBackendId, ChatSession, StoredMessage } from "../types/chat";
+import { migrateBackendId } from "../backends/backendIds";
 
 export class ChatSessionManager {
   private sessions: ChatSession[] = [];
   private activeId: string | null = null;
 
   load(data: { sessions?: ChatSession[]; activeId?: string | null } | null): void {
-    this.sessions = data?.sessions ?? [];
+    this.sessions = (data?.sessions ?? []).map((s) => ({
+      ...s,
+      backend: migrateBackendId(s.backend),
+    }));
     this.activeId = data?.activeId ?? this.sessions[0]?.id ?? null;
   }
 
@@ -39,7 +43,7 @@ export class ChatSessionManager {
     }
   }
 
-  createSession(backend: ChatBackendId = "cursor-rest"): ChatSession {
+  createSession(backend: ChatBackendId = "cursor-sdk"): ChatSession {
     const now = new Date().toISOString();
     const session: ChatSession = {
       id: crypto.randomUUID(),
@@ -54,7 +58,7 @@ export class ChatSessionManager {
     return session;
   }
 
-  ensureActive(backend: ChatBackendId = "cursor-rest"): ChatSession {
+  ensureActive(backend: ChatBackendId = "cursor-sdk"): ChatSession {
     return this.getActive() ?? this.createSession(backend);
   }
 

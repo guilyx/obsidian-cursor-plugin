@@ -2,6 +2,7 @@ import { ItemView, MarkdownRenderer, WorkspaceLeaf, type App } from "obsidian";
 import type CursorChatPlugin from "../main";
 import { VIEW_TYPE } from "../constants";
 import type { StoredMessage } from "../types/chat";
+import { BACKEND_LABELS } from "../backends/backendIds";
 import { BYOK_PROVIDER_PRESETS } from "../settings/byokProviders";
 import { VaultFileSuggestModal } from "./VaultFileSuggestModal";
 import { PrivacyNoticeModal } from "./PrivacyNoticeModal";
@@ -198,31 +199,27 @@ export class CursorChatView extends ItemView {
   private updateStatus(): void {
     const { backend, byok, cursor } = this.plugin.settings;
 
-    if (backend === "cursor-sdk-local") {
-      const { bridgeUrl } = cursor;
-      if (!bridgeUrl.trim()) {
-        this.statusEl.setText("Configure bridge URL in settings.");
-        return;
-      }
-      this.statusEl.setText(`SDK bridge · ${bridgeUrl}`);
+    if (backend === "cursor-agent") {
+      const keyHint = this.plugin.settings.cursor.apiKey.trim() ? "API key set" : "login or API key";
+      this.statusEl.setText(`Cursor Agent · ${this.plugin.settings.cursorAgent.cliPath} · ${keyHint}`);
       return;
     }
 
-    if (backend === "cursor-rest") {
+    if (backend === "cursor-sdk") {
       if (!cursor.apiKey.trim()) {
-        this.statusEl.setText("Configure Cursor API key in settings.");
+        this.statusEl.setText("Configure Cursor API key — run Set up Cursor Chat.");
         return;
       }
       const model = cursor.defaultModelId || "default model";
-      this.statusEl.setText(`Cursor REST · ${model} · ${cursor.defaultMode}`);
+      this.statusEl.setText(`Cursor SDK · ${model} · ${cursor.defaultMode}`);
       return;
     }
 
     if (!byok.baseUrl || !byok.model) {
-      this.statusEl.setText("Configure LLM provider in settings.");
+      this.statusEl.setText("Configure LLM gateway in settings.");
       return;
     }
-    const label = BYOK_PROVIDER_PRESETS[byok.provider]?.label ?? "BYOK";
+    const label = BYOK_PROVIDER_PRESETS[byok.provider]?.label ?? "LLM gateway";
     this.statusEl.setText(`${label} · ${byok.model}`);
   }
 
@@ -345,7 +342,7 @@ export class CursorChatView extends ItemView {
       })) {
         if (event.type === "run-started") {
           this.plugin.sessions.setCursorAgentId(session.id, event.agentId);
-          this.statusEl.setText(`Cursor REST · run ${event.runId.slice(0, 8)}…`);
+          this.statusEl.setText(`Cursor SDK · run ${event.runId.slice(0, 8)}…`);
         } else if (event.type === "assistant-delta") {
           full += event.text;
           assistantBody.empty();

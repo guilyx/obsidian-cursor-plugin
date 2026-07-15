@@ -1,14 +1,16 @@
 import { Plugin, WorkspaceLeaf, addIcon, FileSystemAdapter } from "obsidian";
 import { DEFAULT_SETTINGS, type CursorChatSettings } from "./settings/CursorSettings";
 import { inferByokProvider } from "./settings/byokProviders";
+import { migrateBackendId } from "./backends/backendIds";
 import { CursorSettingsTab } from "./settings/CursorSettingsTab";
 import { CursorChatView } from "./views/CursorChatView";
+import { SetupWizardModal } from "./views/SetupWizardModal";
 import { VIEW_TYPE } from "./constants";
 import { VaultContextBuilder } from "./context/VaultContextBuilder";
 import { ChatSessionManager } from "./session/ChatSessionManager";
-import { ByokBackend } from "./backends/ByokBackend";
-import { CursorRestBackend } from "./backends/CursorRestBackend";
-import { CursorBridgeBackend } from "./backends/CursorBridgeBackend";
+import { LlmGatewayBackend } from "./backends/LlmGatewayBackend";
+import { CursorSdkBackend } from "./backends/CursorSdkBackend";
+import { CursorAgentCliBackend } from "./backends/CursorAgentCliBackend";
 import { BackendRouter } from "./backends/BackendRouter";
 
 const MESSAGE_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
@@ -46,6 +48,12 @@ export default class CursorChatPlugin extends Plugin {
       callback: () => void this.activateChatView(),
     });
 
+    this.addCommand({
+      id: "setup-cursor-chat",
+      name: "Set up Cursor Chat",
+      callback: () => this.openSetupWizard(),
+    });
+
     this.addSettingTab(new CursorSettingsTab(this.app, this));
 
     if (this.settings.openChatOnStartup) {
@@ -57,17 +65,23 @@ export default class CursorChatPlugin extends Plugin {
     this.app.workspace.detachLeavesOfType(VIEW_TYPE);
   }
 
+  openSetupWizard(): void {
+    new SetupWizardModal(this.app, this).open();
+  }
+
   rebuildRouter(): void {
-    const byok = new ByokBackend(this.settings);
-    const cursorRest = new CursorRestBackend(this.settings);
-    const cursorBridge = new CursorBridgeBackend(this.settings, () => {
+    const getVaultPath = (): string | null => {
       const adapter = this.app.vault.adapter;
       if (adapter instanceof FileSystemAdapter) {
         return adapter.getBasePath();
       }
       return null;
-    });
-    this.router = new BackendRouter(this.settings, byok, cursorRest, cursorBridge);
+    };
+
+    const llmGateway = new LlmGatewayBackend(this.settings);
+    const cursorSdk = new CursorSdkBackend(this.settings);
+    const cursorAgent = new CursorAgentCliBackend(this.settings, getVaultPath);
+    this.router = new BackendRouter(this.settings, cursorSdk, cursorAgent, llmGateway);
     this.contextBuilder = new VaultContextBuilder(this.app, this.settings);
   }
 
@@ -75,8 +89,14 @@ export default class CursorChatPlugin extends Plugin {
     const data = await this.loadData();
     if (data?.settings) {
       this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
+      this.settings.backend = migrateBackendId(data.settings.backend ?? DEFAULT_SETTINGS.backend);
       this.settings.byok = Object.assign({}, DEFAULT_SETTINGS.byok, data.settings.byok);
       this.settings.cursor = Object.assign({}, DEFAULT_SETTINGS.cursor, data.settings.cursor);
+      this.settings.cursorAgent = Object.assign(
+        {},
+        DEFAULT_SETTINGS.cursorAgent,
+        data.settings.cursorAgent,
+      );
       if (!data.settings.byok?.provider) {
         this.settings.byok.provider = inferByokProvider(this.settings.byok.baseUrl);
       }
@@ -98,6 +118,11 @@ export default class CursorChatPlugin extends Plugin {
   }
 
   async activateChatView(): Promise<void> {
+    if (!this.settings.hasCompletedSetup) {
+      this.openSetupWizard();
+      return;
+    }
+
     const { workspace } = this.app;
     let leaf = workspace.getLeavesOfType(VIEW_TYPE)[0];
     if (!leaf) {

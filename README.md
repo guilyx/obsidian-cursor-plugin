@@ -28,6 +28,7 @@ See [Building the docs](.docs/development/building-docs.md).
 
 ```bash
 npm install && npm run build
+npm run ci    # typecheck, build, tests
 ```
 
 Symlink into `.obsidian/plugins/obsidian-cursor-chat/` — details in [Installation](.docs/getting-started/installation.md).

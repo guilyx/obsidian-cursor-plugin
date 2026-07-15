@@ -1,4 +1,4 @@
-export type ChatBackendId = "openai-compatible" | "cursor-rest" | "cursor-sdk-local";
+export type ChatBackendId = "cursor-sdk" | "cursor-agent" | "llm-gateway";
 
 export type MessageRole = "user" | "assistant" | "system";
 
@@ -16,7 +16,7 @@ export interface ChatSession {
   messages: StoredMessage[];
   createdAt: string;
   updatedAt: string;
-  /** Cursor Cloud Agent id (`bc-…`) when using cursor-rest */
+  /** Cursor Cloud Agent id (`bc-…`) when using cursor-sdk */
   cursorAgentId?: string;
 }
 

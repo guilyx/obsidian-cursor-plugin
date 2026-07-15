@@ -180,6 +180,24 @@
   gap: 8px;
 }
 
+.cursor-chat-setup-option {
+  margin: 8px 0;
+  padding: 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.cursor-chat-setup-ok {
+  color: var(--text-success);
+}
+
+.cursor-chat-setup-wizard .modal-button-container {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
 .cursor-chat-settings-warn,
 .cursor-chat-settings-error {
   color: var(--text-error);
