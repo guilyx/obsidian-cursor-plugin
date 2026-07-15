@@ -1,4 +1,4 @@
-import { ItemView, MarkdownRenderer, WorkspaceLeaf } from "obsidian";
+import { ItemView, MarkdownRenderer, WorkspaceLeaf, type App } from "obsidian";
 import type CursorChatPlugin from "../main";
 import { VIEW_TYPE } from "../constants";
 import type { StoredMessage } from "../types/chat";
@@ -119,8 +119,11 @@ export class CursorChatView extends ItemView {
         void this.plugin.saveSettings();
       },
       () => {
-        this.app.setting.open();
-        this.app.setting.openTabById(this.plugin.manifest.id);
+        const app = this.app as App & {
+          setting: { open(): void; openTabById(id: string): void };
+        };
+        app.setting.open();
+        app.setting.openTabById(this.plugin.manifest.id);
       },
     ).open();
   }

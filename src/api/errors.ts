@@ -1,8 +1,7 @@
 export class CursorApiError extends Error {
-  constructor(
-    readonly status: number,
-    body: string,
-  ) {
+  readonly status: number;
+
+  constructor(status: number, body: string) {
     let message = `Cursor API error (${status})`;
     try {
       const json = JSON.parse(body) as { message?: string; error?: string };
@@ -14,5 +13,6 @@ export class CursorApiError extends Error {
     }
     super(message);
     this.name = "CursorApiError";
+    this.status = status;
   }
 }

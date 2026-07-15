@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "scripts/**"
+      - "bridge/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "esbuild.config.mjs"
+      - "manifest.json"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "scripts/**"
+      - "bridge/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "esbuild.config.mjs"
+      - "manifest.json"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plugin:
+    name: Build, typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Unit & integration tests
+        run: npm run test
+
+      - name: Legacy self-checks
+        run: npm run check:sse && npm run check:bridge
+
+      - name: Verify build artifact
+        run: test -s main.js
+
+  bridge-package:
+    name: Bridge package sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Syntax-check bridge server
+        run: npm run check:bridge

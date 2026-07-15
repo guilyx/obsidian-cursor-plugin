@@ -6,7 +6,7 @@ import { CursorApiError } from "../api/errors";
 import { readCursorSseStream } from "../api/SseReader";
 
 const POLL_MS = 2000;
-const TERMINAL_STATUSES = new Set(["FINISHED", "ERROR", "CANCELLED", "EXPIRED"]);
+const TERMINAL_ERROR_STATUSES = new Set(["ERROR", "CANCELLED", "EXPIRED"]);
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -162,7 +162,7 @@ export class CursorRestBackend implements ChatBackend {
         }
         return;
       }
-      if (TERMINAL_STATUSES.has(run.status) && run.status !== "FINISHED") {
+      if (TERMINAL_ERROR_STATUSES.has(run.status)) {
         yield { type: "error", message: `Run ${run.status.toLowerCase()}.` };
         return;
       }
