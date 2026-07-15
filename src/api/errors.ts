@@ -4,15 +4,33 @@ export class CursorApiError extends Error {
   constructor(status: number, body: string) {
     let message = `Cursor API error (${status})`;
     try {
-      const json = JSON.parse(body) as { message?: string; error?: string };
-      if (json.message) message = json.message;
-      else if (json.error) message = json.error;
-      else if (body) message = `${message}: ${body.slice(0, 200)}`;
+      const json = JSON.parse(body) as { message?: unknown; error?: unknown };
+      const fromMessage = formatApiErrorField(json.message);
+      const fromError = formatApiErrorField(json.error);
+      if (fromMessage) {
+        message = fromMessage;
+      } else if (fromError) {
+        message = fromError;
+      } else if (body) {
+        message = `${message}: ${body.slice(0, 200)}`;
+      }
     } catch {
-      if (body) message = `${message}: ${body.slice(0, 200)}`;
+      if (body) {
+        message = `${message}: ${body.slice(0, 200)}`;
+      }
     }
     super(message);
     this.name = "CursorApiError";
     this.status = status;
   }
+}
+
+function formatApiErrorField(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+  if (value != null && typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return undefined;
 }

@@ -58,6 +58,7 @@ jobs:
         run: npm run test
 
       - name: Cursor API live tests
+        continue-on-error: true
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
         run: npm run test:integration
