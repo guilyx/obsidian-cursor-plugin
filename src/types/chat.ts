@@ -16,7 +16,7 @@ export interface ChatSession {
   messages: StoredMessage[];
   createdAt: string;
   updatedAt: string;
-  /** Cursor Cloud Agent id (`bc-…`) when using cursor-sdk */
+  /** Cursor agent id for follow-up runs: `agent-…` (local SDK) or `bc-…` (cloud REST) */
   cursorAgentId?: string;
 }
 

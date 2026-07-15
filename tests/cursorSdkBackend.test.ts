@@ -175,4 +175,41 @@ describe("CursorSdkBackend", () => {
     assert.ok(calls.some((c) => c.includes("POST") && c.includes("/agents/bc-existing/runs")));
     assert.ok(!calls.some((c) => c.includes("POST") && c.endsWith("/agents")));
   });
+
+  it("ignores local agent id when cloud runtime is selected", async () => {
+    const calls: string[] = [];
+    mock.method(globalThis, "fetch", async (input: string | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push(`${init?.method ?? "GET"} ${url}`);
+      if (url === `${CURSOR_API_BASE}/v1/agents` && init?.method === "POST") {
+        return new Response(
+          JSON.stringify({
+            agent: { id: "bc-new" },
+            run: { id: "run-new", agentId: "bc-new", status: "CREATING" },
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.endsWith("/stream")) {
+        return sseResponse([{ type: "assistant", data: { text: "fresh cloud" } }, { type: "done", data: {} }]);
+      }
+      throw new Error(`unexpected: ${url}`);
+    });
+
+    const backend = new CursorSdkBackend(
+      testSettings({ cursor: { apiKey: "crsr_test", sdkRuntime: "cloud" } }),
+      () => "/vault",
+    );
+    const events = await collectStreamEvents(
+      backend.send({
+        session: testSession({ cursorAgentId: "agent-local-stale" }),
+        userText: "hello",
+        contextPrefix: "",
+      }),
+    );
+
+    assert.ok(calls.some((c) => c === `POST ${CURSOR_API_BASE}/v1/agents`));
+    assert.ok(!calls.some((c) => c.includes("agent-local-stale")));
+    assert.ok(events.some((e) => e.type === "run-started" && e.agentId === "bc-new"));
+  });
 });
