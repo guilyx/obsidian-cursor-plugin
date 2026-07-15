@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **SDK backend in Obsidian** — was using `fetch` which often fails in the plugin sandbox; now uses `requestUrl` + polling
+- **CI workflow** — removed invalid `secrets` in `if` condition (GitHub rejects this and skips all jobs)
 - **SDK empty replies** — fall back to polling when SSE stream ends without assistant text, on `410`, or on network errors
 - **Chat text selection** — message bubbles are selectable/copyable in the chat sidebar
 
