@@ -5,8 +5,11 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "check:sse": "node scripts/sse-self-check.mjs",
-    "check:bridge": "node --check bridge/server.mjs"
+    "check:bridge": "node --check bridge/server.mjs",
+    "ci": "npm run typecheck && npm run build && npm run test && npm run check:sse && npm run check:bridge"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

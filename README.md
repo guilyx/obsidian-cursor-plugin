@@ -1,5 +1,7 @@
 # obsidian-cursor-plugin
 
+[![CI](https://github.com/guilyx/obsidian-cursor-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/guilyx/obsidian-cursor-plugin/actions/workflows/ci.yml)
+
 Obsidian plugin that embeds an **AI chat sidebar** with pluggable backends (BYOK, Cursor REST, SDK bridge).
 
 ## Documentation

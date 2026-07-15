@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CI workflow** (`.github/workflows/ci.yml`) — typecheck, build, tests, self-checks on push/PR
+- `npm run typecheck`, `npm run test`, `npm run ci`
+- Node test suite: SSE parser, BYOK providers, API errors, bridge stub integration
+
 ### Changed
 
 - **Default backend is now Cursor REST** (`cursor-rest`) — Cursor-native out of the box

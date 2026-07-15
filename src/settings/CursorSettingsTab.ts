@@ -99,18 +99,21 @@ export class CursorSettingsTab extends PluginSettingTab {
           }),
       );
 
-    new Setting(containerEl)
-      .setName("Model")
-      .setDesc(byok.provider === "openrouter" ? "OpenRouter model id, e.g. anthropic/claude-sonnet-4" : undefined)
-      .addText((text) =>
-        text
-          .setPlaceholder(preset.model || "model-id")
-          .setValue(byok.model)
-          .onChange(async (value) => {
-            this.plugin.settings.byok.model = value;
-            await this.plugin.saveSettings();
-          }),
-      );
+    const modelSetting = new Setting(containerEl).setName("Model");
+    if (byok.provider === "openrouter") {
+      modelSetting.setDesc("OpenRouter model id, e.g. anthropic/claude-sonnet-4");
+    } else if (byok.provider === "litellm") {
+      modelSetting.setDesc("Model name configured in your LiteLLM proxy");
+    }
+    modelSetting.addText((text) =>
+      text
+        .setPlaceholder(preset.model || "model-id")
+        .setValue(byok.model)
+        .onChange(async (value) => {
+          this.plugin.settings.byok.model = value;
+          await this.plugin.saveSettings();
+        }),
+    );
 
     new Setting(containerEl)
       .setName("Temperature")
