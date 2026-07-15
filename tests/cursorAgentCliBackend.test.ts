@@ -54,7 +54,7 @@ describe("CursorAgentCliBackend", () => {
     assert.equal(calls[0]?.env.CURSOR_API_KEY, "crsr_test_key");
   });
 
-  it("send runs agent -p with composed prompt", async () => {
+  it("send runs agent with --yolo --trust -p and composed prompt", async () => {
     const calls: SpawnCall[] = [];
     const spawnFn = createMockSpawn((call, child) => {
       calls.push(call);
@@ -76,11 +76,37 @@ describe("CursorAgentCliBackend", () => {
     );
 
     assert.equal(calls[0]?.command, "agent");
-    assert.equal(calls[0]?.args[0], "-p");
-    assert.match(calls[0]?.args[1] ?? "", /What is in my note/);
-    assert.match(calls[0]?.args[1] ?? "", /note body/);
+    assert.equal(calls[0]?.args[0], "--yolo");
+    assert.equal(calls[0]?.args[1], "--trust");
+    assert.equal(calls[0]?.args[2], "-p");
+    assert.match(calls[0]?.args[3] ?? "", /What is in my note/);
+    assert.match(calls[0]?.args[3] ?? "", /note body/);
     assert.equal(calls[0]?.cwd, "/vault");
     assert.ok(events.some((e) => e.type === "assistant-done" && e.text === "CLI answer"));
+  });
+
+  it("omits yolo flags when yoloMode is disabled", async () => {
+    const calls: SpawnCall[] = [];
+    const spawnFn = createMockSpawn((call, child) => {
+      calls.push(call);
+      finishMockChild(child, "ok");
+    });
+
+    const backend = new CursorAgentCliBackend(
+      testSettings({ backend: "cursor-agent", cursorAgent: { yoloMode: false } }),
+      () => "/vault",
+      spawnFn,
+    );
+
+    await collectStreamEvents(
+      backend.send({
+        session: testSession({ backend: "cursor-agent" }),
+        userText: "hi",
+        contextPrefix: "",
+      }),
+    );
+
+    assert.deepEqual(calls[0]?.args, ["-p", "hi"]);
   });
 
   it("send yields error when CLI returns empty output", async () => {

@@ -75,6 +75,64 @@ describe("CursorSdkBackend", () => {
     assert.ok(events.some((e) => e.type === "assistant-done" && e.text === "Hello vault"));
   });
 
+  it("polls GET run when http client does not support streaming", async () => {
+    let pollCount = 0;
+    const http = {
+      supportsStreaming: false,
+      async request({ method, url }: { method: string; url: string }) {
+        if (url.endsWith("/v1/agents") && method === "POST") {
+          return {
+            status: 200,
+            headers: {},
+            text: async () =>
+              JSON.stringify({
+                agent: { id: "bc-1" },
+                run: { id: "run-1", agentId: "bc-1", status: "CREATING" },
+              }),
+            body: null,
+          };
+        }
+        if (url.includes("/runs/run-1") && method === "GET" && !url.endsWith("/stream")) {
+          pollCount++;
+          if (pollCount < 2) {
+            return {
+              status: 200,
+              headers: {},
+              text: async () =>
+                JSON.stringify({ id: "run-1", agentId: "bc-1", status: "RUNNING" }),
+              body: null,
+            };
+          }
+          return {
+            status: 200,
+            headers: {},
+            text: async () =>
+              JSON.stringify({
+                id: "run-1",
+                agentId: "bc-1",
+                status: "FINISHED",
+                result: "Polled reply",
+              }),
+            body: null,
+          };
+        }
+        throw new Error(`unexpected ${method} ${url}`);
+      },
+    };
+
+    const backend = new CursorSdkBackend(testSettings({ cursor: { apiKey: "crsr_test" } }), http);
+    const events = await collectStreamEvents(
+      backend.send({
+        session: testSession(),
+        userText: "hello",
+        contextPrefix: "",
+      }),
+    );
+
+    assert.ok(pollCount >= 2);
+    assert.ok(events.some((e) => e.type === "assistant-done" && e.text === "Polled reply"));
+  });
+
   it("send creates follow-up run when session has cursorAgentId", async () => {
     const calls: string[] = [];
     mock.method(globalThis, "fetch", async (input: string | URL, init?: RequestInit) => {

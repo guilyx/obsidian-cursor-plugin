@@ -23,6 +23,8 @@ export interface CursorApiSettings {
 export interface CursorAgentSettings {
   /** Executable name or path for the Cursor Agent CLI (default: agent). */
   cliPath: string;
+  /** Auto-approve CLI tool runs (`--yolo` / `--trust`). */
+  yoloMode: boolean;
 }
 
 export interface CursorChatSettings {
@@ -55,10 +57,11 @@ export const DEFAULT_SETTINGS: CursorChatSettings = {
   cursor: {
     apiKey: "",
     defaultModelId: "",
-    defaultMode: "plan",
+    defaultMode: "agent",
     showThinking: false,
   },
   cursorAgent: {
     cliPath: "agent",
+    yoloMode: true,
   },
 };

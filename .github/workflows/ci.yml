@@ -57,6 +57,12 @@ jobs:
       - name: Unit & integration tests
         run: npm run test
 
+      - name: Cursor API live tests
+        if: ${{ secrets.CURSOR_API_KEY != '' }}
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: npm run test:integration
+
       - name: Legacy self-checks
         run: npm run check:sse && npm run check:bridge
 

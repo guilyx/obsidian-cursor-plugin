@@ -4,6 +4,7 @@ import type { CursorChatSettings } from "../settings/CursorSettings";
 import { CursorApiClient } from "../api/CursorApiClient";
 import { CursorApiError } from "../api/errors";
 import { readCursorSseStream } from "../api/SseReader";
+import type { HttpClient } from "../api/httpClient";
 
 const POLL_MS = 2000;
 const TERMINAL_ERROR_STATUSES = new Set(["ERROR", "CANCELLED", "EXPIRED"]);
@@ -27,14 +28,17 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 export class CursorSdkBackend implements ChatBackend {
-  constructor(private readonly settings: CursorChatSettings) {}
+  constructor(
+    private readonly settings: CursorChatSettings,
+    private readonly http?: HttpClient,
+  ) {}
 
   private client(): CursorApiClient {
     const key = this.settings.cursor.apiKey.trim();
     if (!key) {
       throw new Error("Cursor API key is required (crsr_…).");
     }
-    return new CursorApiClient(key);
+    return this.http ? new CursorApiClient(key, this.http) : new CursorApiClient(key);
   }
 
   async validate(): Promise<void> {
@@ -91,6 +95,11 @@ export class CursorSdkBackend implements ChatBackend {
       });
       if (full) {
         yield { type: "assistant-done", text: full };
+      } else {
+        yield {
+          type: "error",
+          message: "Cursor agent finished without a reply. Check your API key and model settings.",
+        };
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -111,15 +120,25 @@ export class CursorSdkBackend implements ChatBackend {
     signal: AbortSignal | undefined,
     onDelta: (text: string) => void,
   ): AsyncGenerator<StreamEvent> {
+    const client = this.client();
+
+    // Obsidian requestUrl cannot stream — poll GET /runs/:id directly.
+    if (!client.supportsStreaming) {
+      yield* this.pollRun(agentId, runId, signal, onDelta);
+      return;
+    }
+
+    let receivedText = false;
     try {
-      const res = await this.client().streamRun(agentId, runId, signal);
+      const res = await client.streamRun(agentId, runId, signal);
       if (!res.body) {
-        yield { type: "error", message: "Empty stream body." };
+        yield* this.pollRun(agentId, runId, signal, onDelta);
         return;
       }
 
       for await (const chunk of readCursorSseStream(res.body, signal)) {
         if (chunk.kind === "assistant") {
+          receivedText = true;
           onDelta(chunk.text);
           yield { type: "assistant-delta", text: chunk.text };
         } else if (chunk.kind === "thinking" && this.settings.cursor.showThinking) {
@@ -134,12 +153,23 @@ export class CursorSdkBackend implements ChatBackend {
             result: chunk.result,
           };
         } else if (chunk.kind === "result" && chunk.text) {
+          receivedText = true;
           onDelta(chunk.text);
           yield { type: "assistant-delta", text: chunk.text };
+        } else if (chunk.kind === "status" && chunk.status === "FINISHED") {
+          // Stream may end after status without assistant deltas — poll for result.
+          if (!receivedText) {
+            yield* this.pollRun(agentId, runId, signal, onDelta);
+            return;
+          }
         }
       }
+
+      if (!receivedText) {
+        yield* this.pollRun(agentId, runId, signal, onDelta);
+      }
     } catch (err: unknown) {
-      if (err instanceof CursorApiError && err.status === 410) {
+      if (shouldPollInstead(err)) {
         yield* this.pollRun(agentId, runId, signal, onDelta);
         return;
       }
@@ -169,6 +199,17 @@ export class CursorSdkBackend implements ChatBackend {
       await sleep(POLL_MS, signal);
     }
   }
+}
+
+function shouldPollInstead(err: unknown): boolean {
+  if (err instanceof CursorApiError) {
+    return err.status === 410 || err.message.includes("streaming_not_supported");
+  }
+  // Network / CORS failures in Electron — fall back to polling REST.
+  if (err instanceof TypeError) {
+    return true;
+  }
+  return false;
 }
 
 function formatError(err: unknown): string {

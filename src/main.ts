@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, addIcon, FileSystemAdapter } from "obsidian";
+import { Plugin, WorkspaceLeaf, addIcon, FileSystemAdapter, requestUrl } from "obsidian";
 import { DEFAULT_SETTINGS, type CursorChatSettings } from "./settings/CursorSettings";
 import { inferByokProvider } from "./settings/byokProviders";
 import { migrateBackendId } from "./backends/backendIds";
@@ -12,6 +12,7 @@ import { LlmGatewayBackend } from "./backends/LlmGatewayBackend";
 import { CursorSdkBackend } from "./backends/CursorSdkBackend";
 import { CursorAgentCliBackend } from "./backends/CursorAgentCliBackend";
 import { BackendRouter } from "./backends/BackendRouter";
+import { createObsidianHttpClient } from "./api/httpClient";
 
 const MESSAGE_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 
@@ -79,7 +80,8 @@ export default class CursorChatPlugin extends Plugin {
     };
 
     const llmGateway = new LlmGatewayBackend(this.settings);
-    const cursorSdk = new CursorSdkBackend(this.settings);
+    const cursorHttp = createObsidianHttpClient(requestUrl);
+    const cursorSdk = new CursorSdkBackend(this.settings, cursorHttp);
     const cursorAgent = new CursorAgentCliBackend(this.settings, getVaultPath);
     this.router = new BackendRouter(this.settings, cursorSdk, cursorAgent, llmGateway);
     this.contextBuilder = new VaultContextBuilder(this.app, this.settings);

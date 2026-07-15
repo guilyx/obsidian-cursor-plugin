@@ -4,6 +4,25 @@
   height: 100%;
   background: var(--background-primary);
   color: var(--text-normal);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.cursor-chat-view .cursor-chat-header,
+.cursor-chat-view .cursor-chat-composer-wrap,
+.cursor-chat-view .cursor-chat-chips,
+.cursor-chat-view .cursor-chat-status {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cursor-chat-messages,
+.cursor-chat-bubble,
+.cursor-chat-bubble-body,
+.cursor-chat-bubble-body * {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 
 .cursor-chat-header {

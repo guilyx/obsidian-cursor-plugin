@@ -9,14 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Backend regression tests (mocked `fetch` + `spawn`): `CursorSdkBackend`, `CursorAgentCliBackend`, `LlmGatewayBackend`, `BackendRouter`, `CursorApiClient`
-- Esbuild test runner (`scripts/run-tests.mjs`) for reliable CI execution
-- **`cursor-agent` API key auth** — plugin passes `settings.cursor.apiKey` to the CLI as `CURSOR_API_KEY` (shared with `cursor-sdk`)
+- **`cursor-agent` yolo mode** — passes `--yolo` and `--trust` to skip CLI confirmation prompts (toggle in settings)
+- **Cursor API integration tests** — live tests against `api.cursor.com` when `CURSOR_API_KEY` is set (CI secret)
+- **Obsidian HTTP transport** — SDK backend uses `requestUrl` (bypasses CORS) and polls `GET /runs/:id` when streaming is unavailable
+
+### Fixed
+
+- **SDK backend in Obsidian** — was using `fetch` which often fails in the plugin sandbox; now uses `requestUrl` + polling
+- **SDK empty replies** — fall back to polling when SSE stream ends without assistant text, on `410`, or on network errors
+- **Chat text selection** — message bubbles are selectable/copyable in the chat sidebar
 
 ### Changed
 
-- **`cursor-sdk` wording** — call Cursor agents through the API (not “cloud agents only”)
-- Cursor Agent CLI settings + setup wizard: API key field and status hints (key or `agent login`)
+- Default Cursor SDK mode: `plan` → `agent` (better for direct Q&A)
 
 ## [0.5.0] - 2026-07-15
 

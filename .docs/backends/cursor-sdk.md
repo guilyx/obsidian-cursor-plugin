@@ -23,3 +23,7 @@ See [Cursor REST](cursor-rest.md) for endpoint details (same HTTP API).
 ## Sessions
 
 Chat threads map to `bc-*` agent ids stored in `ChatSession.cursorAgentId`.
+
+## Obsidian transport
+
+Inside the plugin, HTTP calls use Obsidian's `requestUrl` (not raw `fetch`) to bypass CORS. SSE streaming is not available via `requestUrl`, so the backend **polls** `GET /v1/agents/{id}/runs/{runId}` until the run finishes.

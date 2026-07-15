@@ -267,6 +267,18 @@ export class CursorSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName("Auto-approve (yolo)")
+      .setDesc("Pass --yolo and --trust to skip CLI confirmation prompts.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(agent.yoloMode)
+          .onChange(async (value) => {
+            this.plugin.settings.cursorAgent.yoloMode = value;
+            await this.plugin.saveSettings();
+          }),
+      );
   }
 
   private displaySharedSettings(containerEl: HTMLElement): void {

@@ -46,7 +46,7 @@ export class CursorAgentCliBackend implements ChatBackend {
     let stdout = "";
 
     try {
-      stdout = await this.runCli(["-p", prompt], vaultPath, 300_000, abort);
+      stdout = await this.runCli(this.buildPromptArgs(prompt), vaultPath, 300_000, abort);
       if (stdout.trim()) {
         yield { type: "assistant-delta", text: stdout };
         yield { type: "assistant-done", text: stdout };
@@ -66,6 +66,15 @@ export class CursorAgentCliBackend implements ChatBackend {
       }
       yield { type: "error", message: err instanceof Error ? err.message : String(err) };
     }
+  }
+
+  private buildPromptArgs(prompt: string): string[] {
+    const args: string[] = [];
+    if (this.settings.cursorAgent.yoloMode) {
+      args.push("--yolo", "--trust");
+    }
+    args.push("-p", prompt);
+    return args;
   }
 
   private cliEnv(): NodeJS.ProcessEnv {
