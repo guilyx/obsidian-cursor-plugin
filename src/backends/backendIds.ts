@@ -2,7 +2,7 @@ import type { ChatBackendId } from "../types/chat";
 
 /** User-facing backend identifiers (v0.5+). */
 export const BACKEND_LABELS: Record<ChatBackendId, string> = {
-  "cursor-sdk": "Cursor (SDK / API key)",
+  "cursor-sdk": "Cursor agent (API key)",
   "cursor-agent": "Cursor Agent (CLI)",
   "llm-gateway": "Other models (LiteLLM / OpenRouter)",
 };

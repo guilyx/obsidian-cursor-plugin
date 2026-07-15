@@ -8,7 +8,7 @@ The plugin exposes **three backends**, aligned with how users actually choose AI
 
 | ID | User label | Credential | What runs |
 |----|------------|------------|-----------|
-| **`cursor-sdk`** | Cursor (SDK / API key) | `crsr_…` in plugin settings | Cursor Cloud Agents API — same platform as `@cursor/sdk` cloud runs |
+| **`cursor-sdk`** | Cursor agent (API key) | `crsr_…` in plugin settings | Cursor API — call agents programmatically (same as `@cursor/sdk` wire protocol) |
 | **`cursor-agent`** | Cursor Agent (CLI) | Machine login (`agent login`) — **no plugin API key** | `agent -p` subprocess with vault as `cwd` |
 | **`llm-gateway`** | Other models | OpenRouter / LiteLLM / OpenAI keys | OpenAI-compatible `/chat/completions` |
 
@@ -18,7 +18,7 @@ flowchart LR
   OBS --> SDK["cursor-sdk\ncrsr_…"]
   OBS --> CLI["cursor-agent\nagent -p"]
   OBS --> LLM["llm-gateway\nLiteLLM / OpenRouter"]
-  SDK --> API["api.cursor.com\nCloud Agents v1"]
+  SDK --> API["api.cursor.com\nCursor agent API"]
   CLI --> LOCAL["Cursor Agent CLI\nlocal vault folder"]
   LLM --> GW["Your LLM gateway"]
 ```
@@ -29,7 +29,7 @@ Those names described **implementation** (REST vs sidecar), not **user intent**.
 
 | Old ID | Problem | New home |
 |--------|---------|----------|
-| `cursor-rest` | Sounded like “not SDK”; actually *is* the Cursor agent platform | **`cursor-sdk`** — cloud path via Cloud Agents API (what the SDK uses for cloud) |
+| `cursor-rest` | Sounded like a separate “REST-only” product | **`cursor-sdk`** — Cursor agent via API (`crsr_…`) |
 | `cursor-sdk-local` | Stub HTTP bridge; confused with SDK *and* with CLI | **`cursor-agent`** — real local path via `agent` CLI |
 | `openai-compatible` | Protocol name, not product name | **`llm-gateway`** |
 

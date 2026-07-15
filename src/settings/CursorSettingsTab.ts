@@ -152,7 +152,7 @@ export class CursorSettingsTab extends PluginSettingTab {
 
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "Uses the Cursor Cloud Agents API (same platform as @cursor/sdk for cloud runs). Key from Dashboard → Integrations.",
+      text: "Uses the Cursor API to run agents with your crsr_… key — same agent platform as @cursor/sdk (local or cloud per agent config).",
     });
 
     new Setting(containerEl)

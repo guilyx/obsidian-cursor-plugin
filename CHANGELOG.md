@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Backend regression tests (mocked `fetch` + `spawn`): `CursorSdkBackend`, `CursorAgentCliBackend`, `LlmGatewayBackend`, `BackendRouter`, `CursorApiClient`
+- Esbuild test runner (`scripts/run-tests.mjs`) for reliable CI execution
+
+### Changed
+
+- **`cursor-sdk` wording** — call Cursor agents through the API (not “cloud agents only”)
+
 ## [0.5.0] - 2026-07-15
 
 ### Added
 
 - **Three-backend model** with clear user-facing names:
-  - `cursor-sdk` — Cursor API key (`crsr_…`), Cloud Agents platform
+  - `cursor-sdk` — Cursor agent via API key (`crsr_…`)
   - `cursor-agent` — Cursor Agent CLI (`agent -p`), machine login
   - `llm-gateway` — OpenRouter / LiteLLM / BYOK
 - **Set up Cursor Chat** command + setup wizard modal

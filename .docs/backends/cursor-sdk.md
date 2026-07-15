@@ -2,11 +2,11 @@
 
 [← Documentation index](../index.md) · [Backend model](../architecture/backend-model.md)
 
-Uses your **Cursor API key** (`crsr_…`) to run agents on Cursor's platform — the same Cloud Agents API that `@cursor/sdk` uses for cloud runs.
+Uses your **Cursor API key** (`crsr_…`) to **call Cursor agents through the API** — the same agent platform as the Cursor IDE and `@cursor/sdk`. Not limited to “cloud only”; agent runtime depends on how the agent is created (API supports local and cloud configurations via SDK; the plugin uses the HTTP API surface).
 
 ## Why not `@cursor/sdk` inside the plugin?
 
-Obsidian plugins run in a browser-like renderer. The Cursor TypeScript SDK requires Node. The plugin therefore calls **`api.cursor.com/v1`** directly (HTTPS + SSE) — functionally equivalent to SDK cloud agents.
+Obsidian plugins run in a browser-like renderer. The Cursor TypeScript SDK requires Node. The plugin calls **`api.cursor.com/v1`** directly (HTTPS + SSE) — the same API the SDK uses to drive agents programmatically.
 
 ## Settings
 

@@ -1,6 +1,6 @@
 node_modules/
 main.js
 main.js.map
-site/
+tests/.bundled/
 *.log
 .DS_Store

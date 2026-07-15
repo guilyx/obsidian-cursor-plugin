@@ -1,7 +1,13 @@
 import type { ChatBackend } from "./ChatBackend";
 import type { SendMessageInput, StreamEvent } from "../types/chat";
 import type { CursorChatSettings } from "../settings/CursorSettings";
-import { spawn } from "child_process";
+import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+
+export type SpawnFn = (
+  command: string,
+  args: string[],
+  options: { cwd: string; env: NodeJS.ProcessEnv; stdio: string[] },
+) => ChildProcessWithoutNullStreams;
 
 /**
  * Runs the Cursor Agent CLI (`agent -p`) against the vault directory.
@@ -12,6 +18,7 @@ export class CursorAgentCliBackend implements ChatBackend {
   constructor(
     private readonly settings: CursorChatSettings,
     private readonly getVaultPath: () => string | null,
+    private readonly spawnFn: SpawnFn = spawn as unknown as SpawnFn,
   ) {}
 
   async validate(): Promise<void> {
@@ -67,11 +74,11 @@ export class CursorAgentCliBackend implements ChatBackend {
   ): Promise<string> {
     const { cliPath } = this.settings.cursorAgent;
     return new Promise((resolve, reject) => {
-      const child = spawn(cliPath, args, {
+      const child = this.spawnFn(cliPath, args, {
         cwd,
         env: process.env,
         stdio: ["ignore", "pipe", "pipe"],
-      });
+      }) as ChildProcessWithoutNullStreams;
 
       let stdout = "";
       let stderr = "";
@@ -93,13 +100,13 @@ export class CursorAgentCliBackend implements ChatBackend {
         stderr += chunk.toString("utf8");
       });
 
-      child.on("error", (err) => {
+      child.on("error", (err: Error) => {
         clearTimeout(timer);
         signal?.removeEventListener("abort", onAbort);
         reject(new Error(`Failed to start "${cliPath}": ${err.message}. Install: curl https://cursor.com/install -fsS | bash`));
       });
 
-      child.on("close", (code) => {
+      child.on("close", (code: number | null) => {
         clearTimeout(timer);
         signal?.removeEventListener("abort", onAbort);
         if (code === 0 || stdout.trim()) {

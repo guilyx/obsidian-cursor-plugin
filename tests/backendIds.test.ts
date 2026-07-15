@@ -25,5 +25,6 @@ describe("migrateBackendId", () => {
 describe("BACKEND_LABELS", () => {
   it("has a label for each backend", () => {
     assert.equal(Object.keys(BACKEND_LABELS).length, 3);
+    assert.match(BACKEND_LABELS["cursor-sdk"], /API key/);
   });
 });
