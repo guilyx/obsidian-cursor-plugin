@@ -1,5 +1,7 @@
 import type { ChatBackendId, ChatSession, StoredMessage } from "../types/chat";
 import { migrateBackendId } from "../backends/backendIds";
+import { agentIdMatchesSdkRuntime } from "../backends/cursorAgentId";
+import type { SdkRuntime } from "../settings/CursorSettings";
 
 export class ChatSessionManager {
   private sessions: ChatSession[] = [];
@@ -90,6 +92,15 @@ export class ChatSessionManager {
     if (session) {
       session.cursorAgentId = agentId;
       session.updatedAt = new Date().toISOString();
+    }
+  }
+
+  clearCursorAgentIdsForRuntime(runtime: SdkRuntime): void {
+    for (const session of this.sessions) {
+      if (session.cursorAgentId && !agentIdMatchesSdkRuntime(session.cursorAgentId, runtime)) {
+        delete session.cursorAgentId;
+        session.updatedAt = new Date().toISOString();
+      }
     }
   }
 }

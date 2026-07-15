@@ -54,12 +54,12 @@ jobs:
       - name: Build plugin
         run: npm run build
 
-      - name: Unit & integration tests
-        run: npm run test
-
       - name: Install bridge dependencies
         run: npm ci
         working-directory: bridge
+
+      - name: Unit tests
+        run: npm run test
 
       - name: Cursor API live tests
         env:

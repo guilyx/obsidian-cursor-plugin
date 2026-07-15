@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cloud SDK `bc-<uuid>` validation error** — ignore or clear `cursorAgentId` when it belongs to the other runtime (e.g. local `agent-…` id reused after switching to cloud REST)
 - **Bridge integration test** — removed TypeScript `!` syntax from `.mjs` file (CI parse error)
-- Integration tests skip (not fail) when Cloud Agents billing blocks `POST /v1/agents`
+- Integration tests skip (not fail) when `CURSOR_API_KEY` is missing, invalid, or billing blocks cloud agents
 - API error messages parse nested `{ code, message }` objects
 - **SDK empty replies** — fall back to polling when SSE stream ends without assistant text, on `410`, or on network errors
 - **Chat text selection** — message bubbles are selectable/copyable in the chat sidebar

@@ -1,4 +1,5 @@
 import type { ChatBackend } from "./ChatBackend";
+import { agentIdMatchesSdkRuntime } from "./cursorAgentId";
 import type { SendMessageInput, StreamEvent } from "../types/chat";
 import type { CursorChatSettings } from "../settings/CursorSettings";
 import { BridgeApiClient } from "../api/BridgeApiClient";
@@ -93,6 +94,10 @@ export class CursorSdkBackend implements ChatBackend {
       : input.userText;
 
     let agentId = input.session.cursorAgentId;
+    if (agentId && !agentIdMatchesSdkRuntime(agentId, cursor.sdkRuntime)) {
+      // ponytail: stale id from the other runtime (local `agent-…` vs cloud `bc-…`) — start fresh
+      agentId = undefined;
+    }
     let runId: string;
 
     try {
