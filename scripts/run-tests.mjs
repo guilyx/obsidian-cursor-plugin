@@ -12,7 +12,9 @@ const root = new URL("..", import.meta.url).pathname;
 const testsDir = join(root, "tests");
 const outDir = join(testsDir, ".bundled");
 
-const testFiles = (await readdir(testsDir)).filter((f) => f.endsWith(".test.ts"));
+const testFiles = (await readdir(testsDir)).filter(
+  (f) => f.endsWith(".test.ts") && !f.endsWith(".integration.test.ts"),
+);
 const entryPoints = testFiles.map((f) => join(testsDir, f));
 
 await esbuild.build({

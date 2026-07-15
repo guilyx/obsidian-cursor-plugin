@@ -1,12 +1,21 @@
 import type { ChatBackend } from "./ChatBackend";
 import type { SendMessageInput, StreamEvent } from "../types/chat";
 import type { CursorChatSettings } from "../settings/CursorSettings";
+import { BridgeApiClient } from "../api/BridgeApiClient";
 import { CursorApiClient } from "../api/CursorApiClient";
-import { CursorApiError } from "../api/errors";
+import { CursorApiError, isCursorBillingLimitError } from "../api/errors";
 import { readCursorSseStream } from "../api/SseReader";
+import type { HttpClient } from "../api/httpClient";
 
 const POLL_MS = 2000;
 const TERMINAL_ERROR_STATUSES = new Set(["ERROR", "CANCELLED", "EXPIRED"]);
+
+interface RunStreamClient {
+  readonly supportsStreaming: boolean;
+  streamRun(agentId: string, runId: string, signal?: AbortSignal): Promise<{ body: ReadableStream<Uint8Array> | null }>;
+  cancelRun(agentId: string, runId: string): Promise<void>;
+  getRun?(agentId: string, runId: string): Promise<{ status: string; result?: string }>;
+}
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -27,18 +36,54 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 export class CursorSdkBackend implements ChatBackend {
-  constructor(private readonly settings: CursorChatSettings) {}
+  constructor(
+    private readonly settings: CursorChatSettings,
+    private readonly getVaultPath: () => string | null,
+    private readonly http?: HttpClient,
+  ) {}
 
-  private client(): CursorApiClient {
+  private isLocal(): boolean {
+    return this.settings.cursor.sdkRuntime === "local";
+  }
+
+  private apiKey(): string {
     const key = this.settings.cursor.apiKey.trim();
     if (!key) {
       throw new Error("Cursor API key is required (crsr_…).");
     }
-    return new CursorApiClient(key);
+    return key;
+  }
+
+  private cloudClient(): CursorApiClient {
+    const key = this.apiKey();
+    return this.http ? new CursorApiClient(key, this.http) : new CursorApiClient(key);
+  }
+
+  private bridgeClient(): BridgeApiClient {
+    const { bridgeUrl, bridgeToken } = this.settings.cursor;
+    return new BridgeApiClient(bridgeUrl.replace(/\/$/, ""), bridgeToken, this.apiKey(), this.http);
+  }
+
+  private runClient(): RunStreamClient {
+    if (this.isLocal()) {
+      return this.bridgeClient();
+    }
+    return this.cloudClient();
   }
 
   async validate(): Promise<void> {
-    await this.client().me();
+    if (this.isLocal()) {
+      const vaultPath = this.getVaultPath();
+      if (!vaultPath) {
+        throw new Error("Local SDK requires a local folder vault.");
+      }
+      const health = await this.bridgeClient().health();
+      if (!health.ok) {
+        throw new Error("SDK bridge is not healthy. Start it: cd bridge && npm run start:sdk");
+      }
+      return;
+    }
+    await this.cloudClient().me();
   }
 
   async *send(input: SendMessageInput): AsyncGenerator<StreamEvent> {
@@ -51,8 +96,31 @@ export class CursorSdkBackend implements ChatBackend {
     let runId: string;
 
     try {
-      if (!agentId) {
-        const created = await this.client().createAgent({
+      if (this.isLocal()) {
+        const vaultPath = this.getVaultPath();
+        if (!vaultPath) {
+          yield { type: "error", message: "Local SDK requires a local folder vault." };
+          return;
+        }
+        const bridge = this.bridgeClient();
+        if (!agentId) {
+          const created = await bridge.createAgent({
+            name: input.session.title || "Obsidian chat",
+            cwd: vaultPath,
+            model: {
+              id: cursor.defaultModelId || "composer-2.5",
+              fast: true,
+            },
+            prompt: { text: promptText },
+          });
+          agentId = created.agent.id;
+          runId = created.run.id;
+        } else {
+          const created = await bridge.createRun(agentId, { prompt: { text: promptText } });
+          runId = created.run.id;
+        }
+      } else if (!agentId) {
+        const created = await this.cloudClient().createAgent({
           name: input.session.title || "Obsidian chat",
           mode: cursor.defaultMode,
           model: cursor.defaultModelId ? { id: cursor.defaultModelId } : undefined,
@@ -61,7 +129,7 @@ export class CursorSdkBackend implements ChatBackend {
         agentId = created.agent.id;
         runId = created.run.id;
       } else {
-        const created = await this.client().createRun(agentId, {
+        const created = await this.cloudClient().createRun(agentId, {
           prompt: { text: promptText },
           mode: cursor.defaultMode,
         });
@@ -77,20 +145,26 @@ export class CursorSdkBackend implements ChatBackend {
 
     yield { type: "run-started", agentId, runId };
 
+    const client = this.runClient();
     const cancelOnAbort = (): void => {
-      void this.client()
-        .cancelRun(agentId!, runId)
-        .catch(() => {});
+      void client.cancelRun(agentId!, runId).catch(() => {});
     };
     input.signal?.addEventListener("abort", cancelOnAbort, { once: true });
 
     let full = "";
     try {
-      yield* this.streamOrPoll(agentId, runId, input.signal, (text) => {
+      yield* this.streamOrPoll(client, agentId, runId, input.signal, (text) => {
         full += text;
       });
       if (full) {
         yield { type: "assistant-done", text: full };
+      } else {
+        yield {
+          type: "error",
+          message: this.isLocal()
+            ? "Local SDK agent finished without a reply. Is the bridge running?"
+            : "Cursor agent finished without a reply. Check your API key and model settings.",
+        };
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -106,20 +180,30 @@ export class CursorSdkBackend implements ChatBackend {
   }
 
   private async *streamOrPoll(
+    client: RunStreamClient,
     agentId: string,
     runId: string,
     signal: AbortSignal | undefined,
     onDelta: (text: string) => void,
   ): AsyncGenerator<StreamEvent> {
+    if (!client.supportsStreaming && client.getRun) {
+      yield* this.pollRun(client, agentId, runId, signal, onDelta);
+      return;
+    }
+
+    let receivedText = false;
     try {
-      const res = await this.client().streamRun(agentId, runId, signal);
+      const res = await client.streamRun(agentId, runId, signal);
       if (!res.body) {
-        yield { type: "error", message: "Empty stream body." };
+        if (client.getRun) {
+          yield* this.pollRun(client, agentId, runId, signal, onDelta);
+        }
         return;
       }
 
       for await (const chunk of readCursorSseStream(res.body, signal)) {
         if (chunk.kind === "assistant") {
+          receivedText = true;
           onDelta(chunk.text);
           yield { type: "assistant-delta", text: chunk.text };
         } else if (chunk.kind === "thinking" && this.settings.cursor.showThinking) {
@@ -134,13 +218,21 @@ export class CursorSdkBackend implements ChatBackend {
             result: chunk.result,
           };
         } else if (chunk.kind === "result" && chunk.text) {
+          receivedText = true;
           onDelta(chunk.text);
           yield { type: "assistant-delta", text: chunk.text };
+        } else if (chunk.kind === "status" && chunk.status === "FINISHED" && !receivedText && client.getRun) {
+          yield* this.pollRun(client, agentId, runId, signal, onDelta);
+          return;
         }
       }
+
+      if (!receivedText && client.getRun) {
+        yield* this.pollRun(client, agentId, runId, signal, onDelta);
+      }
     } catch (err: unknown) {
-      if (err instanceof CursorApiError && err.status === 410) {
-        yield* this.pollRun(agentId, runId, signal, onDelta);
+      if (client.getRun && shouldPollInstead(err)) {
+        yield* this.pollRun(client, agentId, runId, signal, onDelta);
         return;
       }
       throw err;
@@ -148,13 +240,17 @@ export class CursorSdkBackend implements ChatBackend {
   }
 
   private async *pollRun(
+    client: RunStreamClient,
     agentId: string,
     runId: string,
     signal: AbortSignal | undefined,
     onDelta: (text: string) => void,
   ): AsyncGenerator<StreamEvent> {
+    if (!client.getRun) {
+      return;
+    }
     while (!signal?.aborted) {
-      const run = await this.client().getRun(agentId, runId);
+      const run = await client.getRun(agentId, runId);
       if (run.status === "FINISHED") {
         if (run.result) {
           onDelta(run.result);
@@ -162,7 +258,7 @@ export class CursorSdkBackend implements ChatBackend {
         }
         return;
       }
-      if (TERMINAL_ERROR_STATUSES.has(run.status)) {
+      if (TERMINAL_ERROR_STATUSES.has(run.status as "ERROR" | "CANCELLED" | "EXPIRED")) {
         yield { type: "error", message: `Run ${run.status.toLowerCase()}.` };
         return;
       }
@@ -171,8 +267,21 @@ export class CursorSdkBackend implements ChatBackend {
   }
 }
 
+function shouldPollInstead(err: unknown): boolean {
+  if (err instanceof CursorApiError) {
+    return err.status === 410 || err.message.includes("streaming_not_supported");
+  }
+  if (err instanceof TypeError) {
+    return true;
+  }
+  return false;
+}
+
 function formatError(err: unknown): string {
   if (err instanceof CursorApiError) {
+    if (isCursorBillingLimitError(err)) {
+      return "Cursor Cloud Agents require usage-based pricing. Use SDK runtime: Local, or switch to Cursor Agent CLI.";
+    }
     return err.message;
   }
   return err instanceof Error ? err.message : String(err);

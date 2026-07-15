@@ -5,8 +5,16 @@
 Runs the **Cursor Agent CLI** against your vault folder:
 
 ```bash
-CURSOR_API_KEY=crsr_… agent -p "your prompt"
+CURSOR_API_KEY=crsr_… agent --yolo --trust -p "your prompt"
 ```
+
+## Flags
+
+| Flag | When | Purpose |
+|------|------|---------|
+| `--yolo` / `--force` | `yoloMode` on (default) | Auto-approve shell commands |
+| `--trust` | `yoloMode` on (default) | Trust workspace without prompting |
+| `-p` | always | Non-interactive print mode |
 
 ## Authentication
 
@@ -28,6 +36,7 @@ curl https://cursor.com/install -fsS | bash
 |-------|---------|-------------|
 | `cursor.apiKey` | — | `crsr_…` — injected as `CURSOR_API_KEY` for the CLI |
 | `cursorAgent.cliPath` | `agent` | Executable name or full path |
+| `cursorAgent.yoloMode` | `true` | Pass `--yolo --trust` to skip confirmations |
 
 ## Requirements
 

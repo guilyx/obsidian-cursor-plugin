@@ -9,14 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Backend regression tests (mocked `fetch` + `spawn`): `CursorSdkBackend`, `CursorAgentCliBackend`, `LlmGatewayBackend`, `BackendRouter`, `CursorApiClient`
-- Esbuild test runner (`scripts/run-tests.mjs`) for reliable CI execution
-- **`cursor-agent` API key auth** — plugin passes `settings.cursor.apiKey` to the CLI as `CURSOR_API_KEY` (shared with `cursor-sdk`)
+- **SDK local runtime (default)** — `@cursor/sdk` via `bridge/sdk-server.mjs` (`Agent.create({ local: { cwd } })`)
+- Settings: `cursor.sdkRuntime` (`local` | `cloud`), `bridgeUrl`, `bridgeToken`
+- Local SDK integration tests (`bridge/scripts/sdk-local-integration.mjs`)
+
+### Fixed
+
+- **Bridge integration test** — removed TypeScript `!` syntax from `.mjs` file (CI parse error)
+- Integration tests skip (not fail) when Cloud Agents billing blocks `POST /v1/agents`
+- API error messages parse nested `{ code, message }` objects
+- **SDK empty replies** — fall back to polling when SSE stream ends without assistant text, on `410`, or on network errors
+- **Chat text selection** — message bubbles are selectable/copyable in the chat sidebar
 
 ### Changed
 
-- **`cursor-sdk` wording** — call Cursor agents through the API (not “cloud agents only”)
-- Cursor Agent CLI settings + setup wizard: API key field and status hints (key or `agent login`)
+- Local SDK bridge uses canonical `Agent.create({ model: { id, params: [{ fast }] }, local: { cwd } })`
+- Default `cursor.sdkRuntime`: `local`
+- Cloud Agents billing errors suggest switching to local SDK or CLI
+
+- Default Cursor SDK mode: `plan` → `agent` (better for direct Q&A)
 
 ## [0.5.0] - 2026-07-15
 

@@ -9,9 +9,17 @@ import type {
   CursorRun,
 } from "../types/cursor-api";
 import { CursorApiError } from "./errors";
+import { createFetchHttpClient, type HttpClient, type HttpResponse } from "./httpClient";
 
 export class CursorApiClient {
-  constructor(private readonly apiKey: string) {}
+  readonly supportsStreaming: boolean;
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly http: HttpClient = createFetchHttpClient(),
+  ) {
+    this.supportsStreaming = http.supportsStreaming;
+  }
 
   private authHeaders(extra?: Record<string, string>): Record<string, string> {
     return {
@@ -45,34 +53,50 @@ export class CursorApiClient {
     await this.json<unknown>("POST", `/v1/agents/${agentId}/runs/${runId}/cancel`);
   }
 
-  async streamRun(agentId: string, runId: string, signal?: AbortSignal): Promise<Response> {
-    const res = await fetch(`${CURSOR_API_BASE}/v1/agents/${agentId}/runs/${runId}/stream`, {
+  async streamRun(agentId: string, runId: string, signal?: AbortSignal): Promise<HttpStreamResponse> {
+    const res = await this.http.request({
       method: "GET",
+      url: `${CURSOR_API_BASE}/v1/agents/${agentId}/runs/${runId}/stream`,
       headers: this.authHeaders({ Accept: "text/event-stream" }),
       signal,
     });
-    if (!res.ok) {
+    if (res.status < 200 || res.status >= 300) {
       const text = await res.text();
       throw new CursorApiError(res.status, text);
     }
-    return res;
+    if (!res.body) {
+      throw new CursorApiError(410, "streaming_not_supported");
+    }
+    return wrapStreamResponse(res);
   }
 
   private async json<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const res = await fetch(`${CURSOR_API_BASE}${path}`, {
+    const res = await this.http.request({
       method,
-      headers: this.authHeaders(
-        body !== undefined ? { "Content-Type": "application/json" } : {},
-      ),
+      url: `${CURSOR_API_BASE}${path}`,
+      headers: this.authHeaders(body !== undefined ? { "Content-Type": "application/json" } : {}),
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
-    if (!res.ok) {
+    if (res.status < 200 || res.status >= 300) {
       const text = await res.text();
       throw new CursorApiError(res.status, text);
     }
     if (res.status === 204) {
       return undefined as T;
     }
-    return (await res.json()) as T;
+    return JSON.parse(await res.text()) as T;
   }
+}
+
+/** Minimal stream response shape used by SSE reader. */
+export interface HttpStreamResponse {
+  body: ReadableStream<Uint8Array> | null;
+  text(): Promise<string>;
+}
+
+function wrapStreamResponse(res: HttpResponse): HttpStreamResponse {
+  return {
+    body: res.body,
+    text: () => res.text(),
+  };
 }

@@ -1,11 +1,19 @@
 {
   "name": "obsidian-cursor-bridge",
-  "version": "0.0.1-stub",
+  "version": "0.1.0",
   "private": true,
-  "description": "Local SDK bridge stub for obsidian-cursor-plugin (ponytail: health + mock SSE only)",
+  "description": "Local @cursor/sdk bridge for obsidian-cursor-plugin",
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
-    "check": "node --check server.mjs"
+    "start": "node sdk-server.mjs",
+    "start:stub": "node server.mjs",
+    "test:integration": "node --test scripts/sdk-local-integration.mjs",
+    "check": "node --check server.mjs && node --check sdk-server.mjs && node --check local-agent-options.mjs"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.23"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

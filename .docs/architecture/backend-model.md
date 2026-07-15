@@ -8,7 +8,7 @@ The plugin exposes **three backends**, aligned with how users actually choose AI
 
 | ID | User label | Credential | What runs |
 |----|------------|------------|-----------|
-| **`cursor-sdk`** | Cursor agent (API key) | `crsr_…` in plugin settings | Cursor API — call agents programmatically (same as `@cursor/sdk` wire protocol) |
+| **`cursor-sdk`** | Cursor agent (API key) | `crsr_…` | **Local (default):** `@cursor/sdk` via Node bridge · **Cloud:** Cloud Agents REST API |
 | **`cursor-agent`** | Cursor Agent (CLI) | `crsr_…` and/or machine login | `agent -p` with `CURSOR_API_KEY` in vault `cwd` |
 | **`llm-gateway`** | Other models | OpenRouter / LiteLLM / OpenAI keys | OpenAI-compatible `/chat/completions` |
 
@@ -17,49 +17,52 @@ flowchart LR
   OBS["Obsidian Plugin"]
   OBS --> SDK["cursor-sdk\ncrsr_…"]
   OBS --> CLI["cursor-agent\nagent -p"]
-  OBS --> LLM["llm-gateway\nLiteLLM / OpenRouter"]
-  SDK --> API["api.cursor.com\nCursor agent API"]
-  CLI --> LOCAL["Cursor Agent CLI\nlocal vault folder"]
-  LLM --> GW["Your LLM gateway"]
+  OBS --> LLM["llm-gateway"]
+  SDK --> LOCAL["Local SDK bridge\n@cursor/sdk local cwd"]
+  SDK --> API["Cloud Agents REST\noptional"]
+  CLI --> AGENT["Cursor Agent CLI"]
+  LLM --> GW["LLM gateway"]
 ```
 
-## Why we dropped `cursor-rest` and `cursor-sdk-local`
+## Cursor SDK: local vs cloud
 
-Those names described **implementation** (REST vs sidecar), not **user intent**.
+Per [Cursor TypeScript SDK — Usage and billing](https://cursor.com/docs/sdk/typescript#usage-and-billing):
 
-| Old ID | Problem | New home |
-|--------|---------|----------|
-| `cursor-rest` | Sounded like a separate “REST-only” product | **`cursor-sdk`** — Cursor agent via API (`crsr_…`) |
-| `cursor-sdk-local` | Stub HTTP bridge; confused with SDK *and* with CLI | **`cursor-agent`** — real local path via `agent` CLI |
-| `openai-compatible` | Protocol name, not product name | **`llm-gateway`** |
+| Runtime | What it does | Plugin path |
+|---------|--------------|-------------|
+| **Local** | Agent loop inline in Node; files from disk (`local.cwd`) | Default — `bridge/sdk-server.mjs` + `sdkRuntime: local` |
+| **Cloud** | Agent in Cursor-hosted VM via REST | `sdkRuntime: cloud` — `POST /v1/agents` |
 
-The Obsidian renderer **cannot** bundle `@cursor/sdk` (Node-only). For **`cursor-sdk`**, the plugin calls the **same Cloud Agents REST API** the SDK uses for cloud agents. That is intentional — not a separate product surface.
+Same `crsr_…` key for both. **Local does not require Cloud Agents usage-based pricing headroom** — it uses standard SDK token billing like the IDE/CLI.
 
-For **local file tools** without pasting notes into prompts, use **`cursor-agent`** (CLI), not a custom bridge — unless you later run a full SDK sidecar for advanced hooks/MCP.
+> **Local means local agent loop, not local model.** Inference still goes through Cursor's hosted models.
 
-## Cursor Agent CLI and API keys
+```typescript
+// Canonical local agent (bridge uses this shape)
+const agent = await Agent.create({
+  apiKey: process.env.CURSOR_API_KEY!,
+  model: {
+    id: "composer-2.5",
+    params: [{ id: "fast", value: "true" }],
+  },
+  local: { cwd: vaultPath },
+});
+```
 
-Headless `agent -p` typically needs either:
+### Why not bundle `@cursor/sdk` in the plugin?
 
-- `agent login` on the machine (uses Cursor subscription session), **or**
-- `CURSOR_API_KEY` in the environment
+Obsidian plugins run in a browser-like renderer (no Node 22 native binaries). Local SDK runs in the **bridge** sidecar or via **CLI**.
 
-The plugin **does not** store a key for `cursor-agent` — it relies on CLI auth. This matches “I already use Cursor on this laptop.”
+## Cursor Agent CLI
+
+Headless `agent -p` uses `--yolo --trust` by default. Auth via `CURSOR_API_KEY` or `agent login`.
 
 ## Setup command
 
 **Command palette → Cursor Chat: Set up Cursor Chat**
 
-Walks through backend choice, credentials, and connection test. Opens automatically on first chat open until `hasCompletedSetup` is true.
-
 ## Migration
 
-Persisted `backend` values from v0.4 are migrated on load:
-
 - `cursor-rest` → `cursor-sdk`
-- `cursor-sdk-local` → `cursor-agent`
+- `cursor-sdk-local` → `cursor-agent` (bridge is now part of `cursor-sdk` local runtime)
 - `openai-compatible` → `llm-gateway`
-
-## Future: optional SDK sidecar
-
-The `bridge/` package remains for a possible **local `@cursor/sdk` sidecar** (hooks, MCP, `local.cwd`). It is **not** a fourth user-facing backend today — overlap with `cursor-agent` is too high for v0.5.

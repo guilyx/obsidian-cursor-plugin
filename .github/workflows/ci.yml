@@ -57,6 +57,15 @@ jobs:
       - name: Unit & integration tests
         run: npm run test
 
+      - name: Install bridge dependencies
+        run: npm ci
+        working-directory: bridge
+
+      - name: Cursor API live tests
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: npm run test:integration
+
       - name: Legacy self-checks
         run: npm run check:sse && npm run check:bridge
 
@@ -73,5 +82,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Syntax-check bridge server
-        run: npm run check:bridge
+      - name: Install bridge dependencies
+        run: npm ci
+        working-directory: bridge
+
+      - name: Syntax-check bridge servers
+        run: npm run check
+        working-directory: bridge
