@@ -171,11 +171,17 @@
 
 .cursor-chat-bubble--error {
   border-left: 3px solid var(--text-error);
-  background: var(--background-modifier-error);
+  background: var(--background-secondary);
+}
+
+.cursor-chat-bubble--error .cursor-chat-bubble-label {
+  color: var(--text-error);
 }
 
 .cursor-chat-error-text {
-  color: var(--text-error);
+  color: var(--text-normal);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .cursor-chat-retry-btn {
