@@ -170,23 +170,103 @@
 }
 
 .cursor-chat-bubble--error {
+  border: 1px solid color-mix(in srgb, var(--text-error) 35%, var(--background-modifier-border));
   border-left: 3px solid var(--text-error);
-  background: var(--background-secondary);
+  background: var(--background-primary);
 }
 
 .cursor-chat-bubble--error .cursor-chat-bubble-label {
   color: var(--text-error);
+  font-weight: 600;
 }
 
-.cursor-chat-error-text {
+.cursor-chat-error-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cursor-chat-error-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cursor-chat-error-icon {
+  display: inline-flex;
+  color: var(--text-error);
+}
+
+.cursor-chat-error-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cursor-chat-error-title {
+  font-weight: 600;
   color: var(--text-normal);
+}
+
+.cursor-chat-error-summary {
+  color: var(--text-normal);
+  line-height: 1.5;
+}
+
+.cursor-chat-error-hint {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.45;
+}
+
+.cursor-chat-error-details {
+  font-size: var(--font-ui-smaller);
+}
+
+.cursor-chat-error-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.cursor-chat-error-technical {
+  margin: 6px 0 0;
+  padding: 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
   white-space: pre-wrap;
   word-break: break-word;
+  max-height: 160px;
+  overflow-y: auto;
 }
 
-.cursor-chat-retry-btn {
-  margin-top: 8px;
+.cursor-chat-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cursor-chat-retry-btn,
+.cursor-chat-error-btn {
   font-size: var(--font-ui-smaller);
+}
+
+.cursor-chat-error-btn {
+  padding: 4px 10px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.cursor-chat-error-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+.cursor-chat-status--error {
+  color: var(--text-error);
 }
 
 .cursor-chat-bubble-label {

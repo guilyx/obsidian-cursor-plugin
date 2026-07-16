@@ -1,7 +1,6 @@
 import type { ChatBackend } from "./ChatBackend";
 import type { SendMessageInput, StreamEvent } from "../types/chat";
 import type { CursorChatSettings } from "../settings/CursorSettings";
-import { formatCliErrorMessage } from "./formatCliError";
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
 
 export type SpawnFn = (
@@ -65,7 +64,7 @@ export class CursorAgentCliBackend implements ChatBackend {
         }
         return;
       }
-      yield { type: "error", message: formatCliErrorMessage(err instanceof Error ? err.message : String(err)) };
+      yield { type: "error", message: err instanceof Error ? err.message : String(err) };
     }
   }
 
@@ -134,7 +133,7 @@ export class CursorAgentCliBackend implements ChatBackend {
           resolve(stdout.trim());
           return;
         }
-        reject(new Error(formatCliErrorMessage(stderr.trim() || `Cursor Agent exited with code ${code ?? "unknown"}`)));
+        reject(new Error(stderr.trim() || `Cursor Agent exited with code ${code ?? "unknown"}`));
       });
     });
   }

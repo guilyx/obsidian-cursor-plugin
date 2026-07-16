@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **CLI error readability** — error bubbles use readable contrast (no red-on-red); `resource_exhausted` and connection-loss spam show actionable messages
+- **Error UX** — structured error cards with title, hint, collapsible technical details, and Retry / Settings / Switch backend actions; readable in all themes
+- **CLI error readability** — maps `resource_exhausted` and connection-loss spam to actionable guidance
 - **Folder attachments** — parse Obsidian drag payloads (`obsidian://`, `[[wikilinks]]`, `app://obsidian.md` HTML); folders listed first in attach picker
 - **Missing local SDK bridge after reinstall** — Community Plugin installs only ship `main.js`; plugin now downloads `bridge/` from GitHub on first use and uses the vault plugin folder path
 - **Cloud SDK `bc-<uuid>` validation error** — ignore or clear `cursorAgentId` when it belongs to the other runtime (e.g. local `agent-…` id reused after switching to cloud REST)
