@@ -16,6 +16,7 @@ import {
   mergeAttachments,
   type ChatAttachment,
 } from "./chatAttachments";
+import { formatChatErrorStorage, presentChatError } from "./chatErrorPresentation";
 
 interface FailedTurn {
   sessionId: string;
@@ -414,6 +415,7 @@ export class CursorChatView extends ItemView {
   private updateStatus(): void {
     const { backend, byok, cursor } = this.plugin.settings;
     this.statusEl.removeClass("cursor-chat-status--action");
+    this.statusEl.removeClass("cursor-chat-status--error");
 
     if (backend === "cursor-agent") {
       const keyHint = cursor.apiKey.trim() ? "API key set" : "login or API key";
@@ -472,12 +474,7 @@ export class CursorChatView extends ItemView {
     const body = bubble.createDiv({ cls: "cursor-chat-bubble-body" });
     if (msg.role === "assistant") {
       if (isError) {
-        body.createSpan({ text: msg.content, cls: "cursor-chat-error-text" });
-        const retryBtn = bubble.createEl("button", {
-          text: "Retry",
-          cls: "cursor-chat-retry-btn mod-cta",
-        });
-        retryBtn.onclick = () => void this.retryTurn(msg.id);
+        this.renderErrorBubble(bubble, body, msg.content, msg.id);
       } else {
         void MarkdownRenderer.render(this.app, msg.content, body, "", this);
       }
@@ -648,8 +645,9 @@ export class CursorChatView extends ItemView {
           full = event.text;
         } else if (event.type === "error") {
           hadError = true;
-          this.showAssistantError(assistantBubble, assistantBody, event.message, assistantMsg.id);
-          full = `Error: ${event.message}`;
+          const stored = formatChatErrorStorage(presentChatError(event.message, this.plugin.settings.backend));
+          this.renderErrorBubble(assistantBubble, assistantBody, event.message, assistantMsg.id);
+          full = stored;
         }
       }
       this.plugin.sessions.updateAssistantMessage(session.id, assistantMsg.id, full);
@@ -668,8 +666,9 @@ export class CursorChatView extends ItemView {
     } catch (err: unknown) {
       if (!(err instanceof DOMException && err.name === "AbortError")) {
         const msg = err instanceof Error ? err.message : String(err);
-        this.showAssistantError(assistantBubble, assistantBody, msg, assistantMsg.id);
-        this.plugin.sessions.updateAssistantMessage(session.id, assistantMsg.id, `Error: ${msg}`);
+        const stored = formatChatErrorStorage(presentChatError(msg, this.plugin.settings.backend));
+        this.renderErrorBubble(assistantBubble, assistantBody, msg, assistantMsg.id);
+        this.plugin.sessions.updateAssistantMessage(session.id, assistantMsg.id, stored);
         await this.plugin.persistSessions();
         this.lastFailedTurn = {
           sessionId: session.id,
@@ -687,19 +686,67 @@ export class CursorChatView extends ItemView {
     }
   }
 
-  private showAssistantError(
+  private renderErrorBubble(
     bubble: HTMLElement,
     body: HTMLElement,
-    message: string,
+    rawMessage: string,
     assistantMsgId: string,
   ): void {
+    const presentation = presentChatError(rawMessage, this.plugin.settings.backend);
     bubble.addClass("cursor-chat-bubble--error");
+
+    const label = bubble.querySelector(".cursor-chat-bubble-label");
+    if (label) {
+      label.setText("Error");
+    }
+
     body.empty();
-    body.createSpan({ text: `Error: ${message}`, cls: "cursor-chat-error-text" });
-    const retryBtn = bubble.createEl("button", {
+    const card = body.createDiv({ cls: "cursor-chat-error-card" });
+
+    const titleRow = card.createDiv({ cls: "cursor-chat-error-title-row" });
+    const icon = titleRow.createSpan({ cls: "cursor-chat-error-icon" });
+    setIcon(icon, "alert-triangle");
+    titleRow.createSpan({ cls: "cursor-chat-error-title", text: presentation.title });
+
+    card.createDiv({ cls: "cursor-chat-error-summary", text: presentation.summary });
+
+    if (presentation.hint) {
+      card.createDiv({ cls: "cursor-chat-error-hint", text: presentation.hint });
+    }
+
+    if (presentation.technical && presentation.technical !== presentation.summary) {
+      const details = card.createEl("details", { cls: "cursor-chat-error-details" });
+      details.createEl("summary", { text: "Technical details" });
+      details.createEl("pre", { cls: "cursor-chat-error-technical" }).setText(presentation.technical);
+    }
+
+    const actions = card.createDiv({ cls: "cursor-chat-error-actions" });
+    const retryBtn = actions.createEl("button", {
       text: "Retry",
       cls: "cursor-chat-retry-btn mod-cta",
     });
     retryBtn.onclick = () => void this.retryTurn(assistantMsgId);
+
+    if (presentation.showOpenSettings) {
+      const settingsBtn = actions.createEl("button", {
+        text: "Settings",
+        cls: "cursor-chat-error-btn",
+      });
+      settingsBtn.onclick = () => this.plugin.openSettings();
+    }
+
+    if (presentation.showSwitchBackend) {
+      const switchBtn = actions.createEl("button", {
+        text: "Switch backend",
+        cls: "cursor-chat-error-btn",
+      });
+      switchBtn.onclick = () => {
+        this.backendSelectEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        this.backendSelectEl.focus();
+      };
+    }
+
+    this.statusEl.setText(presentation.summary);
+    this.statusEl.addClass("cursor-chat-status--error");
   }
 }

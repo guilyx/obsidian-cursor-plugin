@@ -49,6 +49,18 @@ curl https://cursor.com/install -fsS | bash
 - Non-streaming: waits for full `agent -p` output
 - Long runs may need timeout tuning
 
+## Troubleshooting
+
+| Symptom | Likely cause | What to do |
+|---------|--------------|------------|
+| `Connection lost, reconnecting to agentn.global.api*.cursor.sh` | Cursor CLI cloud endpoint down or overloaded | Wait and **Retry**; switch header backend to **Cursor SDK** |
+| `resource_exhausted` | Rate limit or plan usage cap | Wait, check Cursor billing; use **Cursor SDK** or **LLM gateway** |
+| Empty output | No API key / not logged in | Set `crsr_…` in settings or run `agent login` in a terminal |
+
+The chat sidebar shows errors in a structured card (title, hint, technical details) with **Retry**, **Settings**, and **Switch backend** buttons when relevant.
+
+The CLI still talks to Cursor's cloud (`agentn.global.api*.cursor.sh`) even though it runs locally — outages or limits on Cursor's side affect this backend too.
+
 ## vs `cursor-sdk`
 
 | | `cursor-sdk` | `cursor-agent` |
